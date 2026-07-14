@@ -1,0 +1,30 @@
+[
+    {
+        "timestamp": "2026-07-12 10:15:09",
+        "event_type": "DEAL_COMPLETED",
+        "domain": "Personal",
+        "details": "Approved discount of 10.0%. Odoo invoice generated successfully. Encryption written to secure vault.",
+        "agent_state": "Gold-Tier-Autonomous"
+    },
+    {
+        "timestamp": "2026-07-12 10:15:21",
+        "event_type": "DEAL_COMPLETED",
+        "domain": "Personal",
+        "details": "Approved discount of 10.0%. Odoo invoice generated successfully. Encryption written to secure vault.",
+        "agent_state": "Gold-Tier-Autonomous"
+    },
+    {
+        "timestamp": "2026-07-12 10:15:34",
+        "event_type": "DEAL_COMPLETED",
+        "domain": "Personal",
+        "details": "Approved discount of 10.0%. Odoo invoice generated successfully. Encryption written to secure vault.",
+        "agent_state": "Gold-Tier-Autonomous"
+    },
+    {
+        "timestamp": "2026-07-12 10:15:46",
+        "event_type": "DEAL_COMPLETED",
+        "domain": "Personal",
+        "details": "Approved discount of 10.0%. Odoo invoice generated successfully. Encryption written to secure vault.",
+        "agent_state": "Gold-Tier-Autonomous"
+    }
+]

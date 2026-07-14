@@ -1,0 +1,11 @@
+.env
+*.session
+credentials/
+secrets/
+__pycache__/
+*.pyc
+venv/
+*.key
+*.log
+node_modules/
+.vault_key
