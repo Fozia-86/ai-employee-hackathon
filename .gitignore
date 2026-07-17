@@ -9,3 +9,5 @@ venv/
 *.log
 node_modules/
 .vault_key
+.stfolder/
+*.sync-conflict-*.md
