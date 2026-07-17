@@ -1,0 +1,15 @@
+---
+type: email
+from: sara.iqbal@atlasretail.pk
+subject: Interested in an Agentic Workflow Setup proposal
+---
+
+Hello,
+
+We run Atlas Retail, a mid-size e-commerce operation, and we're evaluating vendors for an AI-driven order support automation project. Your Agentic Workflow Setup service came recommended by a partner.
+
+Could you send over a proposal covering scope, timeline, and pricing? We'd like to start planning for next quarter.
+
+Best regards,
+Sara Iqbal
+Operations Lead, Atlas Retail

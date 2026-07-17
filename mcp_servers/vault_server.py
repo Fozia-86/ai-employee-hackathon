@@ -1,8 +1,11 @@
 import os
+import re
 import glob
+import shutil
 import logging
 import json
 import datetime
+import uuid
 from dotenv import load_dotenv
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
@@ -13,7 +16,147 @@ load_dotenv(dotenv_path)
 
 logging.basicConfig(level=logging.INFO)
 mcp = FastMCP("Core Vault Server")
-VAULT_PATH = "/mnt/d/AI_Employee_Vault"
+VAULT_PATH = "/home/ubuntu/ai-employee-hackathon"
+
+# Work-Zone Separation (Phase 2): same fail-safe pattern as social_server.py.
+# No email-send implementation exists yet (that's future, separate work), but
+# this flag is wired now so triage_email never needs restructuring later --
+# missing/unset defaults to draft-only.
+CLOUD_ZONE = os.environ.get("CLOUD_ZONE", "true").strip().lower() not in ("false", "0", "no")
+
+SPAM_KEYWORDS = [
+    "unsubscribe", "congratulations you won", "click here now", "free money",
+    "lottery", "viagra", "you have been selected", "claim your prize", "act now",
+]
+SUPPORT_KEYWORDS = [
+    "issue", "problem", "bug", "not working", "broken", "error", "help",
+    "trouble", "support", "complaint",
+]
+BUSINESS_KEYWORDS = [
+    "quote", "pricing", "proposal", "partnership", "interested in", "discount",
+    "service", "project", "onboarding", "contract", "inquiry", "collaborate",
+]
+
+def classify_email(subject: str, body: str) -> str:
+    """Simple keyword-based triage. Returns 'spam', 'support', 'business_inquiry',
+    or 'irrelevant' (no business keywords matched)."""
+    text = f"{subject} {body}".lower()
+    if any(k in text for k in SPAM_KEYWORDS):
+        return "spam"
+    if any(k in text for k in BUSINESS_KEYWORDS):
+        return "business_inquiry"
+    if any(k in text for k in SUPPORT_KEYWORDS):
+        return "support"
+    return "irrelevant"
+
+def _parse_discount_percentage(text: str):
+    match = re.search(r'(\d{1,3})\s*%', text)
+    return float(match.group(1)) if match else None
+
+@mcp.tool()
+def triage_email(subject: str, sender: str, body: str) -> str:
+    """Classifies an inbound email and, if business-relevant, drafts a reply to
+    /Pending_Approval/ (email_draft_<timestamp>.md). Never sends anything live --
+    Cloud zone drafts only; a human on the Local zone reviews and sends.
+    Spam/irrelevant emails are logged and skipped, no draft is created."""
+    category = classify_email(subject, body)
+
+    if category in ("spam", "irrelevant"):
+        return (
+            f"Email classified as [{category}]. No draft created. "
+            f"Sender: {sender}, Subject: {subject}"
+        )
+
+    discount_pct = _parse_discount_percentage(f"{subject} {body}")
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    unique_suffix = uuid.uuid4().hex[:6]
+
+    decision = "AUTONOMOUS_APPROVED"
+    hitl_required = "false"
+    cited_rule = ""
+    escalation_note = ""
+
+    if discount_pct is not None:
+        kb_content = search_kb("discount")
+        if discount_pct > 20.0:
+            decision = "ESCALATION_REQUIRED"
+            hitl_required = "true"
+            cited_rule = (
+                f"20% discount ceiling — knowledge_base.md § Standard Discount "
+                f"Boundaries (Escalation Constraint), requires HITL approval"
+            )
+            escalation_note = (
+                f"\n## Policy Escalation\n"
+                f"- **Cited rule**: {cited_rule}\n"
+                f"- **Requested discount**: {discount_pct:.0f}%\n"
+                f"- **KB excerpt**:\n\n> {kb_content.strip().splitlines()[4] if len(kb_content.strip().splitlines()) > 4 else kb_content.strip()}\n\n"
+                f"This draft is not a routine reply — it is a policy-driven escalation. "
+                f"Do not approve/send without confirming the discount amount with the business owner.\n"
+            )
+            reply_body = (
+                f"Thank you for reaching out, {sender}.\n\n"
+                f"We've received your request for a {discount_pct:.0f}% discount. "
+                f"This exceeds our standard autonomous authorization ceiling of 20%, so "
+                f"it has been escalated to our team for manual review before we can confirm.\n\n"
+                f"We'll follow up shortly with next steps."
+            )
+        else:
+            cited_rule = (
+                f"20% loyalty/discount ceiling — knowledge_base.md § Standard "
+                f"Discount Boundaries (Autonomous Authorization)"
+            )
+            reply_body = (
+                f"Thank you for reaching out, {sender}.\n\n"
+                f"We're happy to offer a {discount_pct:.0f}% discount on your order, which "
+                f"is within our standard authorization limits. Let us know if you'd like to "
+                f"proceed and we'll prepare the paperwork."
+            )
+    elif category == "support":
+        reply_body = (
+            f"Hi {sender},\n\nThanks for letting us know about the issue described in "
+            f"\"{subject}\". Our team is looking into it and will follow up with a resolution "
+            f"shortly."
+        )
+    else:  # business_inquiry
+        reply_body = (
+            f"Hi {sender},\n\nThank you for your interest in our services regarding "
+            f"\"{subject}\". We'd love to learn more about your requirements and share a "
+            f"proposal. Could you tell us more about your timeline and scope?"
+        )
+
+    filename = f"email_draft_{timestamp}_{unique_suffix}.md"
+    pending_dir = os.path.join(VAULT_PATH, "Pending_Approval")
+    os.makedirs(pending_dir, exist_ok=True)
+    target_path = os.path.join(pending_dir, filename)
+
+    draft_content = (
+        f"---\n"
+        f"type: email_draft\n"
+        f"category: {category}\n"
+        f"original_sender: {sender}\n"
+        f"original_subject: {subject}\n"
+        f"created: {timestamp}\n"
+        f"status: awaiting_local_approval\n"
+        f"decision: {decision}\n"
+        f"hitl_required: {hitl_required}\n"
+        + (f"cited_rule: \"{cited_rule}\"\n" if cited_rule else "")
+        + f"---\n\n"
+        f"# Email Draft — {category}\n\n"
+        f"## Original Email\n"
+        f"- **From**: {sender}\n"
+        f"- **Subject**: {subject}\n\n"
+        f"> {body}\n"
+        f"{escalation_note}\n"
+        f"## Draft Reply\n\n{reply_body}\n"
+    )
+
+    with open(target_path, 'w', encoding='utf-8') as f:
+        f.write(draft_content)
+
+    return (
+        f"Draft Created [{category}, decision={decision}]: saved to {target_path} "
+        f"for Local zone approval."
+    )
 
 @mcp.tool()
 def monitor_triggers() -> str:
@@ -62,6 +205,80 @@ def write_approval_file(filename: str, content: str) -> str:
         return f"Successfully wrote pending approval file to: {target_path}"
     except Exception as e:
         return f"Error writing approval file: {str(e)}"
+
+@mcp.tool()
+def archive_processed_triggers(outcome: str, note: str = "") -> str:
+    """Moves all current /Needs_Action/TRIGGER_*.md files (and their referenced
+    original_file siblings) into /Done/Processed_Triggers/, timestamped, so they
+    are not picked up and reprocessed by monitor_triggers on the next poll cycle.
+    outcome should be 'success' or 'failed'."""
+    directory = os.path.join(VAULT_PATH, "Needs_Action")
+    pattern = os.path.join(directory, "TRIGGER_*")
+    files = glob.glob(pattern)
+
+    if not files:
+        return "No trigger files present to archive."
+
+    dest_dir = os.path.join(VAULT_PATH, "Done", "Processed_Triggers")
+    os.makedirs(dest_dir, exist_ok=True)
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    status_tag = "SUCCESS" if outcome == "success" else "FAILED"
+
+    moved = []
+    for filepath in files:
+        filename = os.path.basename(filepath)
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception:
+            content = ""
+
+        match = re.search(r'original_file:\s*(\S+)', content)
+        if match:
+            orig_name = match.group(1).strip()
+            orig_path = os.path.join(directory, orig_name)
+            if os.path.exists(orig_path):
+                orig_dest = os.path.join(dest_dir, f"{timestamp}_{status_tag}_{orig_name}")
+                try:
+                    shutil.move(orig_path, orig_dest)
+                    moved.append(orig_name)
+                except Exception:
+                    pass
+
+        dest_path = os.path.join(dest_dir, f"{timestamp}_{status_tag}_{filename}")
+        try:
+            shutil.move(filepath, dest_path)
+            moved.append(filename)
+        except Exception as e:
+            return f"Error archiving {filename}: {str(e)}"
+
+    if note:
+        try:
+            with open(os.path.join(dest_dir, f"{timestamp}_{status_tag}_note.md"), 'w', encoding='utf-8') as f:
+                f.write(note)
+        except Exception:
+            pass
+
+    return f"Archived {len(moved)} file(s) with outcome=[{status_tag}] to Done/Processed_Triggers/: {', '.join(moved)}"
+
+@mcp.tool()
+def write_error_recovery_file(details: str) -> str:
+    """Ralph Wiggum protocol: after automatic retries are exhausted, isolates the
+    failed payload to /Pending_Approval/error_recovery_[timestamp].md for HITL review."""
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    filename = f"error_recovery_{timestamp}.md"
+    target_path = os.path.join(VAULT_PATH, "Pending_Approval", filename)
+    try:
+        with open(target_path, 'w', encoding='utf-8') as f:
+            f.write(
+                f"---\ntype: error_recovery\ntimestamp: {timestamp}\n---\n\n"
+                f"# Ralph Wiggum Error Recovery\n\n"
+                f"Automatic retries exhausted. Payload isolated for human review.\n\n"
+                f"{details}\n"
+            )
+        return f"Error recovery payload isolated to: {target_path}"
+    except Exception as e:
+        return f"Error writing recovery file: {str(e)}"
 
 @mcp.tool()
 def update_dashboard(status_table: str) -> str:

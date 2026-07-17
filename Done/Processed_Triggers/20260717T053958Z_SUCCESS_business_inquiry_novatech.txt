@@ -1,0 +1,15 @@
+---
+type: email
+from: hassan.malik@novatech-solutions.com
+subject: Inquiry about Agentic Workflow Setup for our support team
+---
+
+Hi team,
+
+We're NovaTech Solutions, a 40-person SaaS company, and we came across your Agentic Workflow Setup service while researching AI automation vendors. We're looking to automate parts of our customer support triage process and would like to understand your offering better.
+
+Could you share a proposal outlining scope, timeline, and pricing? We're hoping to kick off within the next quarter if this is a good fit.
+
+Thanks,
+Hassan Malik
+Head of Operations, NovaTech Solutions
