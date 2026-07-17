@@ -1,4 +1,8 @@
 import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).resolve().parent / ".env")
 
 # Pura text data
 content = """# Gold Tier: Autonomous Employee Agent Architecture
@@ -52,7 +56,7 @@ The runner implements an autonomous, self-healing execution loop:
 """
 
 # Folder check karna aur banana
-path = "/mnt/d/AI_Employee_Vault/Knowledge_Base"
+path = os.path.join(os.environ["VAULT_PATH"], "Knowledge_Base")
 os.makedirs(path, exist_ok=True)
 
 # File write karna

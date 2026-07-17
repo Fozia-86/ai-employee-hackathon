@@ -1,55 +1,52 @@
 import os
-import datetime
-import uuid
 import urllib.request
 import json
 import logging
+from datetime import datetime, timezone
+from pathlib import Path
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(dotenv_path)
-
-VAULT_PATH = "/home/ubuntu/ai-employee-hackathon"
-
-# Work-Zone Separation (Phase 2): this MCP server runs on the Cloud zone, which
-# may only ever DRAFT social content, never publish it live. Missing/unset
-# CLOUD_ZONE must fail safe to draft-only -- only an explicit "false" (set on
-# the Local zone machine) enables live publishing.
-CLOUD_ZONE = os.environ.get("CLOUD_ZONE", "true").strip().lower() not in ("false", "0", "no")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 
 logging.basicConfig(level=logging.INFO)
 mcp = FastMCP("Core Social Server")
 
-def _write_draft(platform: str, content: str) -> str:
-    """Writes a pending social-media draft to /Pending_Approval/ instead of
-    publishing live. The Local zone reviews and sends these manually."""
-    pending_dir = os.path.join(VAULT_PATH, "Pending_Approval")
-    os.makedirs(pending_dir, exist_ok=True)
-    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
-    unique_suffix = uuid.uuid4().hex[:6]
-    filename = f"social_draft_{platform.lower()}_{timestamp}_{unique_suffix}.md"
-    target_path = os.path.join(pending_dir, filename)
+PENDING_APPROVAL_DIR = PROJECT_ROOT / "Pending_Approval"
+
+
+def is_cloud_execution() -> bool:
+    """EXECUTION_ZONE defaults to 'cloud' (safe/draft-only) unless explicitly set to 'local'."""
+    return os.environ.get("EXECUTION_ZONE", "cloud").strip().lower() != "local"
+
+
+def write_social_draft(platform: str, content: str) -> str:
+    """Writes a pending-approval draft instead of posting live, for EXECUTION_ZONE=cloud."""
+    PENDING_APPROVAL_DIR.mkdir(parents=True, exist_ok=True)
+    ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    draft_path = PENDING_APPROVAL_DIR / f"social_draft_{platform}_{ts}.md"
     draft_body = (
-        f"---\n"
-        f"type: social_draft\n"
+        "---\n"
+        "type: social_draft\n"
         f"platform: {platform}\n"
-        f"created: {timestamp}\n"
-        f"status: awaiting_local_approval\n"
-        f"---\n\n"
+        f"created: {ts}\n"
+        "status: pending_approval\n"
+        "---\n\n"
+        f"# Social Draft — {platform}\n\n"
         f"{content}\n"
     )
-    with open(target_path, 'w', encoding='utf-8') as f:
-        f.write(draft_body)
-    return target_path
+    draft_path.write_text(draft_body, encoding="utf-8")
+    return str(draft_path)
+
 
 @mcp.tool()
 def post_to_twitter(tweet_text: str) -> str:
-    """Drafts a promo post for Twitter (X). Cloud zone never publishes live --
-    it writes the draft to /Pending_Approval/ for the Local zone to send."""
-    if CLOUD_ZONE:
-        draft_path = _write_draft("twitter", tweet_text)
-        return f"X (Twitter) Draft Created: \"{tweet_text}\" saved to {draft_path} for Local zone approval."
+    """Publishes a promo post to Twitter (X) via standard v2 API."""
+    if is_cloud_execution():
+        draft_path = write_social_draft("twitter", tweet_text)
+        logging.info(f"EXECUTION_ZONE=cloud active — Twitter post drafted, not sent live: {draft_path}")
+        return f"EXECUTION_ZONE=cloud Draft-Only: Tweet saved for local approval at {draft_path}."
 
     bearer_token = os.environ.get("TWITTER_BEARER_TOKEN", "")
     url = "https://api.twitter.com/2/tweets"
@@ -80,16 +77,15 @@ def post_to_twitter(tweet_text: str) -> str:
 
 @mcp.tool()
 def post_to_meta(platform: str, message: str) -> str:
-    """Drafts content for a Meta platform (facebook/instagram). Cloud zone never
-    publishes live -- it writes the draft to /Pending_Approval/ for the Local
-    zone to send via the Graph API."""
-    if CLOUD_ZONE:
-        draft_path = _write_draft(platform, message)
-        return f"Meta ({platform}) Draft Created: \"{message}\" saved to {draft_path} for Local zone approval."
+    """Publishes content to Meta platform (facebook/instagram) using Graph API."""
+    if is_cloud_execution():
+        draft_path = write_social_draft(platform.lower(), message)
+        logging.info(f"EXECUTION_ZONE=cloud active — Meta ({platform}) post drafted, not sent live: {draft_path}")
+        return f"EXECUTION_ZONE=cloud Draft-Only: {platform} post saved for local approval at {draft_path}."
 
     page_id = os.environ.get("META_PAGE_ID", "")
     page_access_token = os.environ.get("META_PAGE_ACCESS_TOKEN", "")
-
+    
     if not page_access_token or "your-page" in page_access_token:
         logging.warning(f"Meta Credentials missing. Sandbox active for {platform}.")
         return f"Meta ({platform}) Sandbox Success: Simulated Post: \"{message}\" (Graph SDK v19.0 verified)."

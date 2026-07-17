@@ -2,14 +2,20 @@ import os
 import requests
 import logging
 import random
+from pathlib import Path
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(dotenv_path)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 
 logging.basicConfig(level=logging.INFO)
 mcp = FastMCP("Core Odoo Server")
+
+
+def is_cloud_execution() -> bool:
+    """EXECUTION_ZONE defaults to 'cloud' (safe/sandbox) unless explicitly set to 'local'."""
+    return os.environ.get("EXECUTION_ZONE", "cloud").strip().lower() != "local"
 
 
 def _odoo_call(base_url: str, api_key: str, db: str, model: str, method: str, **kwargs):
@@ -97,7 +103,14 @@ def cancel_odoo_invoice(invoice_id: int) -> str:
     invoices may only be Drafted or Cancelled, never deleted. Intended for use
     behind the Local Agent's approval workflow (Cloud Agent has draft-create
     only; no cancel/post authority).
+
+    Gated by EXECUTION_ZONE: cloud (default) never makes a live cancel call,
+    even with valid credentials — only EXECUTION_ZONE=local may cancel/post.
     """
+    if is_cloud_execution():
+        logging.info(f"EXECUTION_ZONE=cloud active — cancel of Invoice [{invoice_id}] skipped, no live call made.")
+        return f"EXECUTION_ZONE=cloud Sandbox: Cancel of Invoice [{invoice_id}] NOT executed (requires EXECUTION_ZONE=local)."
+
     ODOO_URL = os.environ.get("ODOO_URL", "")
     ODOO_DB = os.environ.get("ODOO_DB", "")
     ODOO_API_KEY = os.environ.get("ODOO_API_KEY", "")

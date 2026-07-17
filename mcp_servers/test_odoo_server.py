@@ -1,7 +1,7 @@
 """Live integration test for the Odoo JSON-2 invoice-creation tool.
 
 Exercises `create_odoo_invoice` against the real Odoo Cloud database configured
-in `mcp_servers/.env` (ODOO_URL / ODOO_DB / ODOO_API_KEY). It creates a real
+in the project root `.env` (ODOO_URL / ODOO_DB / ODOO_API_KEY). It creates a real
 *draft* invoice for a clearly labelled test customer.
 
 Notes:
@@ -15,12 +15,13 @@ Run:
     python -m pytest test_odoo_server.py -v
 """
 import os
+from pathlib import Path
 
 import pytest
 from dotenv import load_dotenv
 
-# Load the same .env the server uses before importing it.
-load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+# Load the same project-root .env the server uses before importing it.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from odoo_server import create_odoo_invoice
 

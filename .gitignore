@@ -10,4 +10,4 @@ venv/
 node_modules/
 .vault_key
 .stfolder/
-*.sync-conflict-*.md
+*.sync-conflict-*

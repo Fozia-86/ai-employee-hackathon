@@ -6,6 +6,7 @@ import random
 import json
 import datetime
 import urllib.request
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Cryptography imports
@@ -14,14 +15,14 @@ from cryptography.hazmat.backends import default_backend
 
 from mcp.server.fastmcp import FastMCP
 
-# Load .env variables
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-load_dotenv(dotenv_path)
+# Load .env variables from the project root
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 
 logging.basicConfig(level=logging.INFO)
 
 mcp = FastMCP("Local Vault Server")
-VAULT_PATH = "/mnt/d/AI_Employee_Vault"
+VAULT_PATH = os.environ["VAULT_PATH"]
 
 @mcp.tool()
 def monitor_triggers() -> str:

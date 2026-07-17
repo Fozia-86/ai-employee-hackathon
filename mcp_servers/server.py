@@ -5,8 +5,9 @@ from typing import Dict, Any, List
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-# Load Enterprise Environment Configurations
-load_dotenv()
+# Load Enterprise Environment Configurations from the project root .env
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(PROJECT_ROOT / ".env")
 VAULT_PATH = os.getenv("VAULT_PATH", "./workspace")
 
 # Initialize FastMCP Server

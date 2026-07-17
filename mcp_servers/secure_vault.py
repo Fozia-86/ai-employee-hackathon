@@ -3,7 +3,8 @@ import argparse
 from cryptography.fernet import Fernet
 from pathlib import Path
 
-KEY_FILE = Path(".vault_key")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+KEY_FILE = PROJECT_ROOT / ".vault_key"
 if not KEY_FILE.exists():
     KEY_FILE.write_bytes(Fernet.generate_key())
 
@@ -19,7 +20,7 @@ def encrypt_file(file_path):
     print(f"🔒 {path.name} encrypted.")
 
 def rotate_api_key(service_name, new_key):
-    env_path = Path(".env")
+    env_path = PROJECT_ROOT / ".env"
     if not env_path.exists():
         env_path.write_text("")
     lines = env_path.read_text().splitlines()

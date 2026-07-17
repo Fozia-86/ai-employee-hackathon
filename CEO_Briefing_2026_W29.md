@@ -7,12 +7,15 @@ The autonomous agent loop has executed continuously under **Gold Tier** policies
 - **Total Transactions Screened**: 1
 - **Deals Approved Autonomously (≤ 15% discount)**: 1
 - **Escalation Requests Blocked (> 15% discount)**: 0 (Currently waiting in `/Pending_Approval/`)
-- **Active Pending CEO Approvals**: 2
+- **Active Pending CEO Approvals**: 5
 
 ## 2. Escalation Queue Details
 The following requests require your immediate manual authorization in the `/Pending_Approval/` directory:
 - **File**: `email_draft_20260717T054113Z_237989.md` (Pending Review)
 - **File**: `escalation_deal.md` (Pending Review)
+- **File**: `social_draft_facebook_20260717T103637Z_a885b7.md` (Pending Review)
+- **File**: `social_draft_instagram_20260717T103637Z_8ade88.md` (Pending Review)
+- **File**: `social_draft_twitter_20260717T103637Z_208503.md` (Pending Review)
 
 ## 3. Data Integrity & Enterprise Sync Status
 - **Odoo Cloud ERP Status**: Synced (Live draft invoice records registered in `account.move`)
