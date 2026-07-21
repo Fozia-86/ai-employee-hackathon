@@ -11,5 +11,6 @@ venv/
 *.log
 node_modules/
 .vault_key
+.whatsapp_session/
 .stfolder/
 *.sync-conflict-*
