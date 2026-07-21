@@ -293,6 +293,53 @@ def write_approval_file(filename: str, content: str, folder: str = "Sales") -> s
         return f"Error writing approval file: {str(e)}"
 
 @mcp.tool()
+def write_payment_request(invoice_id: str, amount: float, method: str, customer_name: str = "") -> str:
+    """Writes a payment-request draft to /Pending_Approval/Sales/ for HITL review
+    (Requirement 2b, payments/banking, sandbox-only).
+
+    This is a manual/dummy trigger only -- it records that a human has
+    reported a payment was received (there is no real bank/gateway webhook
+    wired into this vault) and never calls any payment API itself. The actual
+    mutation happens only after Local-zone approval via review_approvals.py,
+    then record_payment() (mcp_servers/odoo_server.py, EXECUTION_ZONE=local
+    gated) run through process_approved_payments.py.
+    """
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    unique = uuid.uuid4().hex[:6]
+    filename = f"payment_request_{timestamp}_{unique}.md"
+    target_dir = os.path.join(VAULT_PATH, "Pending_Approval", "Sales")
+    os.makedirs(target_dir, exist_ok=True)
+    target_path = os.path.join(target_dir, filename)
+
+    display_customer = customer_name or "Unknown Customer"
+    content = (
+        "---\n"
+        "type: payment_request\n"
+        f"invoice_id: {invoice_id}\n"
+        f"amount: {amount}\n"
+        f"method: {method}\n"
+        f"customer_name: {display_customer}\n"
+        f"created: {datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}\n"
+        "status: awaiting_local_approval\n"
+        "decision: PENDING\n"
+        "---\n\n"
+        "## Payment Request\n\n"
+        f"A payment of **{amount}** via **{method}** has been reported against "
+        f"Invoice **{invoice_id}** ({display_customer}).\n\n"
+        "This is a sandbox/dummy request awaiting Local-zone human approval. "
+        "Approving this file (via review_approvals.py) and then running "
+        "process_approved_payments.py will call record_payment() against Odoo, "
+        "gated behind EXECUTION_ZONE=local.\n"
+    )
+    try:
+        with open(target_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"Payment Request Created: saved to {target_path}"
+    except Exception as e:
+        return f"Error writing payment request: {str(e)}"
+
+
+@mcp.tool()
 def archive_processed_triggers(outcome: str, note: str = "", agent_id: str = "cloud-agent") -> str:
     """Moves all current /In_Progress/<agent_id>/TRIGGER_*.md files (and their
     referenced original_file siblings) into /Done/Processed_Triggers/, timestamped,

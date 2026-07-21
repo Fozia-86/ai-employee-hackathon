@@ -2,6 +2,7 @@ import os
 import requests
 import logging
 import random
+import uuid
 from pathlib import Path
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
@@ -151,6 +152,82 @@ def cancel_odoo_invoice(invoice_id: int) -> str:
     except Exception as e:
         logging.error(f"Live Odoo cancel Failed. Details: {str(e)}")
         return f"Failure: Could not cancel Odoo Invoice ID [{inv_id}] (API Failure: {str(e)})."
+
+
+@mcp.tool()
+def record_payment(invoice_id: str, amount: float, method: str) -> str:
+    """Record a payment against an Odoo invoice (account.move) via the JSON-2 API.
+
+    Requirement 2b (payments/banking, sandbox-only): always simulates a dummy
+    payment-gateway confirmation first (a fake transaction ID + CONFIRMED
+    status, in the shape a real gateway callback would carry) so the response
+    shape is already correct if a real processor is ever wired in later. That
+    dummy confirmation is what triggers the Odoo side -- an account.payment
+    record is created and posted (action_post), which moves the linked
+    invoice's state, never a raw status-field edit. (Simplified: this does not
+    perform full invoice/payment reconciliation a production Odoo flow would
+    normally do via the register-payment wizard -- out of scope for this
+    sandbox tool.)
+
+    Gated by EXECUTION_ZONE: cloud (default) never makes a live call or even a
+    sandbox mutation -- only EXECUTION_ZONE=local may record a payment, same
+    zone boundary as cancel_odoo_invoice. Intended to be called only after a
+    payment_request draft has been through Local-zone HITL approval (see
+    process_approved_payments.py).
+    """
+    if is_cloud_execution():
+        logging.info(f"EXECUTION_ZONE=cloud active — payment recording for Invoice [{invoice_id}] skipped, no action taken.")
+        return f"EXECUTION_ZONE=cloud Sandbox: Payment recording for Invoice [{invoice_id}] NOT executed (requires EXECUTION_ZONE=local)."
+
+    txn_id = f"TXN-{uuid.uuid4().hex[:10].upper()}"
+    gateway_response = f"Dummy Gateway Response: transaction_id={txn_id}, status=CONFIRMED, amount={float(amount):.2f}, method={method}"
+
+    ODOO_URL = os.environ.get("ODOO_URL", "")
+    ODOO_DB = os.environ.get("ODOO_DB", "")
+    ODOO_API_KEY = os.environ.get("ODOO_API_KEY", "")
+
+    if not ODOO_API_KEY or not ODOO_URL:
+        logging.warning("Sandbox Mode: Real Odoo credentials missing.")
+        return (f"Sandbox Success: Mock Recorded Payment [{txn_id}] of {float(amount):.2f} via {method} "
+                f"against Invoice [{invoice_id}] (no live call made). {gateway_response}")
+
+    try:
+        inv_id = int(invoice_id)
+        pre = _odoo_call(
+            ODOO_URL, ODOO_API_KEY, ODOO_DB, 'account.move', 'read',
+            ids=[inv_id], fields=['state', 'partner_id'],
+        )
+        if not pre:
+            return f"Failure: Odoo Invoice ID [{inv_id}] not found. {gateway_response}"
+        if pre[0].get('state') == 'paid':
+            return f"Success: Odoo Invoice ID [{inv_id}] is already in 'paid' state (no action needed). {gateway_response}"
+
+        partner_id = pre[0]['partner_id'][0] if pre[0].get('partner_id') else False
+
+        created_payment = _odoo_call(
+            ODOO_URL, ODOO_API_KEY, ODOO_DB, 'account.payment', 'create',
+            vals_list=[{
+                'payment_type': 'inbound',
+                'partner_type': 'customer',
+                'partner_id': partner_id,
+                'amount': float(amount),
+                'ref': f"{method} / {txn_id}",
+            }],
+        )
+        payment_id = created_payment[0] if isinstance(created_payment, list) else created_payment
+
+        _odoo_call(ODOO_URL, ODOO_API_KEY, ODOO_DB, 'account.payment', 'action_post', ids=[payment_id])
+
+        post = _odoo_call(
+            ODOO_URL, ODOO_API_KEY, ODOO_DB, 'account.move', 'read',
+            ids=[inv_id], fields=['state'],
+        )
+        state = post[0].get('state') if post else None
+        return (f"Success: Recorded Payment ID [{payment_id}] ({txn_id}) of {float(amount):.2f} via {method} "
+                f"against Invoice [{inv_id}] via JSON-2 API. Invoice state is now '{state}'. {gateway_response}")
+    except Exception as e:
+        logging.error(f"Live Odoo payment recording Failed. Details: {str(e)}")
+        return f"Failure: Could not record payment for Odoo Invoice ID [{invoice_id}] (API Failure: {str(e)}). {gateway_response}"
 
 
 if __name__ == "__main__":
