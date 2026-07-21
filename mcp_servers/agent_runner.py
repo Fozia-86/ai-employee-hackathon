@@ -72,6 +72,9 @@ def parse_email_fields(raw_text: str):
         "subject": fm.get("subject", "(no subject)"),
         "sender": fm.get("from", "unknown@example.com"),
         "body": body.strip(),
+        "gmail_message_id": fm.get("gmail_message_id", ""),
+        "gmail_thread_id": fm.get("gmail_thread_id", ""),
+        "gmail_rfc_message_id": fm.get("gmail_rfc_message_id", "").strip('"'),
     }
 
 async def execute_tool_with_retry(session, tool_name, arguments, max_retries=3):
@@ -115,7 +118,7 @@ async def run_agent_loop():
         
         while True:
             try:
-                triggers_output = await execute_tool_with_retry(session_v, "monitor_triggers", {})
+                triggers_output = await execute_tool_with_retry(session_v, "claim_trigger", {})
                 
                 if "No trigger files found" in triggers_output or not triggers_output.strip():
                     await execute_tool_with_retry(session_v, "generate_weekly_audit", {})
@@ -133,7 +136,11 @@ async def run_agent_loop():
                     original_file = extract_original_file(triggers_output)
                     email_fields = None
                     if original_file:
-                        original_path = os.path.join(VAULT_PATH, "Needs_Action", original_file)
+                        # claim_trigger() already moved this file (and its
+                        # TRIGGER_ wrapper) into In_Progress/cloud-agent/ before
+                        # returning triggers_output -- read it from there, not
+                        # from Needs_Action/ (Requirement 2, claim-by-move).
+                        original_path = os.path.join(VAULT_PATH, "In_Progress", "cloud-agent", original_file)
                         if os.path.exists(original_path):
                             with open(original_path, "r", encoding="utf-8") as f:
                                 email_fields = parse_email_fields(f.read())
@@ -147,6 +154,9 @@ async def run_agent_loop():
                                 "subject": email_fields["subject"],
                                 "sender": email_fields["sender"],
                                 "body": email_fields["body"],
+                                "gmail_message_id": email_fields["gmail_message_id"],
+                                "gmail_thread_id": email_fields["gmail_thread_id"],
+                                "gmail_rfc_message_id": email_fields["gmail_rfc_message_id"],
                             }
                         )
                         print(f"✉️ Email Triage Result: {triage_result}")
@@ -157,7 +167,10 @@ async def run_agent_loop():
                             "| :--- | :--- | :--- | :--- | :--- |\n"
                             f"| {original_file} | Email Triaged | {triage_result[:150]} | {email_domain_route} | 0 |\n"
                         )
-                        await execute_tool_with_retry(session_v, "update_dashboard", {"status_table": status_table})
+                        await execute_tool_with_retry(
+                            session_v, "write_dashboard_update",
+                            {"status_table": status_table, "note": f"Email triaged: {original_file}"}
+                        )
 
                         audit_msg = (
                             f"Email from {email_fields['sender']} (subject: \"{email_fields['subject']}\") "
@@ -195,15 +208,18 @@ async def run_agent_loop():
                             await execute_tool_with_retry(
                                 session_v,
                                 "write_approval_file",
-                                {"filename": "escalation_deal.md", "content": approval_content}
+                                {"filename": "escalation_deal.md", "content": approval_content, "folder": "Sales"}
                             )
-    
+
                             status_table = (
                                 "| Deal Identifier | Status | Action/Details | Error Attempts |\n"
                                 "| :--- | :--- | :--- | :--- |\n"
                                 f"| TRIGGER_test_deal | Halted | Over-discount limit ({discount_rate}%). Escalated. | 0 |\n"
                             )
-                            await execute_tool_with_retry(session_v, "update_dashboard", {"status_table": status_table})
+                            await execute_tool_with_retry(
+                                session_v, "write_dashboard_update",
+                                {"status_table": status_table, "note": f"Escalated deal: {customer}"}
+                            )
     
                             # Log audit event for escalation
                             audit_msg = f"Escalated deal of customer {customer} ({email}) with {discount_rate}% requested discount."
@@ -292,10 +308,13 @@ async def run_agent_loop():
                                 "| :--- | :--- | :--- | :--- | :--- | :--- | :--- |\n"
                                 f"| TRIGGER_test_deal | Completed | Approved. {odoo_response} | AES-256 GCM Saved | {social_status_label} | {domain_route} | 0 |\n"
                             )
-                            await execute_tool_with_retry(session_v, "update_dashboard", {"status_table": status_table})
+                            await execute_tool_with_retry(
+                                session_v, "write_dashboard_update",
+                                {"status_table": status_table, "note": f"Deal completed: {customer}"}
+                            )
 
                     # Trigger successfully handled (escalated or completed) - archive it so
-                    # it is not re-read and reprocessed by monitor_triggers next cycle.
+                    # it is not re-read and reprocessed by claim_trigger next cycle.
                     archive_result = await execute_tool_with_retry(
                         session_v, "archive_processed_triggers", {"outcome": "success"}
                     )

@@ -1,3 +1,7 @@
+---
+decision: approved
+reviewed_at: 2026-07-19T06:20:18Z
+---
 # Escalation Alert
 
 - **Customer**: Nawab Musa

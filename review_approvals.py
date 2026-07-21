@@ -130,9 +130,18 @@ def reject(path: Path, reason: str) -> Path:
 
 
 def list_pending() -> list[Path]:
+    """Lists files directly in Pending_Approval/ (legacy flat files, e.g.
+    error_recovery_*.md) plus one level into domain subfolders (Sales/Support/
+    General -- Requirement 3a), since triage_email/write_approval_file/
+    write_social_draft now file drafts under those instead of the root."""
     if not PENDING_PATH.exists():
         return []
-    return sorted(p for p in PENDING_PATH.iterdir() if p.is_file())
+    root_files = (p for p in PENDING_PATH.iterdir() if p.is_file())
+    subfolder_files = PENDING_PATH.glob("*/*")
+    return sorted({
+        p for p in list(root_files) + list(subfolder_files)
+        if p.is_file() and not p.name.startswith(".")
+    })
 
 
 def run_interactive() -> None:
@@ -170,18 +179,25 @@ def run_interactive() -> None:
             print("Skipped.")
 
 
+def resolve_pending(name: str) -> Path | None:
+    """Resolves a bare filename to its actual location -- root or one of the
+    domain subfolders (Sales/Support/General -- Requirement 3a)."""
+    candidates = [PENDING_PATH / name, *PENDING_PATH.glob(f"*/{name}")]
+    return next((p for p in candidates if p.exists()), None)
+
+
 def run_non_interactive(approve_name: str = None, reject_name: str = None, reason: str = None) -> None:
     if approve_name:
-        path = PENDING_PATH / approve_name
-        if not path.exists():
-            print(f"Error: {path} not found.", file=sys.stderr)
+        path = resolve_pending(approve_name)
+        if path is None:
+            print(f"Error: {approve_name} not found in {PENDING_PATH} or its subfolders.", file=sys.stderr)
             sys.exit(1)
         dest = approve(path)
         print(f"Approved -> {dest}")
     if reject_name:
-        path = PENDING_PATH / reject_name
-        if not path.exists():
-            print(f"Error: {path} not found.", file=sys.stderr)
+        path = resolve_pending(reject_name)
+        if path is None:
+            print(f"Error: {reject_name} not found in {PENDING_PATH} or its subfolders.", file=sys.stderr)
             sys.exit(1)
         if reason is None:
             reason = input("Rejection reason: ").strip()

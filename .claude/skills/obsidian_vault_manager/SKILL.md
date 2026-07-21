@@ -12,7 +12,7 @@ When a client requests a discount or price negotiation in `/Needs_Action`:
 3. **Analyze**: 
    - If the request is ≤ the 20% Hard Ceiling: Draft a reply autonomously.
    - If the request is > 20%: Flag for `HITL Approval` immediately.
-4. **Action**: Create a `PLAN_[ID].md` including the specific rule cited from the KB.
+4. **Action**: Create a `PLAN_[ID].md` including the specific rule cited from the KB, filed under `/Plans/<Domain>/` (`Sales/`, `Support/`, or `General/` — Requirement 3a domain routing; discount/pricing negotiations are almost always `Sales/`), not directly in `/Needs_Action/`.
 
 ## 2. Security Protocol (Post-Execution)
 When moving any file containing Bank Statements, Invoices, or Revenue data to `/Done/Financials`:

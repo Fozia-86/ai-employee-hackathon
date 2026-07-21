@@ -16,7 +16,10 @@ CREDENTIALS_FILE = VAULT_PATH / "credentials.json"
 TOKEN_FILE = VAULT_PATH / "token.json"
 STATE_FILE = NEEDS_ACTION_PATH / ".gmail_processed_ids.json"
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
+SCOPES = [
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/gmail.send",
+]
 QUERY = 'is:unread subject:(proposal OR inquiry OR pricing OR quote OR "interested in") newer_than:1d'
 POLL_INTERVAL_SECONDS = 60
 OAUTH_PORT = 8080
@@ -28,7 +31,16 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 def get_gmail_service():
     creds = None
     if TOKEN_FILE.exists():
-        creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+        # Credentials.from_authorized_user_file(path, scopes=SCOPES) sets
+        # .scopes to the *requested* SCOPES, not what's actually stored in
+        # the file -- so a stale token missing a newly added scope (e.g.
+        # gmail.send) would otherwise look "valid" and never trigger
+        # re-consent. Compare against the file's raw granted scopes instead.
+        granted_scopes = set(json.loads(TOKEN_FILE.read_text()).get("scopes", []))
+        if set(SCOPES).issubset(granted_scopes):
+            creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
+        else:
+            logging.info("Cached token.json is missing a newly required scope -- forcing re-consent.")
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
@@ -79,12 +91,16 @@ def fetch_and_process_new_emails(service, processed_ids):
         headers = {h["name"]: h["value"] for h in full["payload"].get("headers", [])}
         subject = headers.get("Subject", "(no subject)")
         sender = headers.get("From", "unknown@example.com")
+        message_id_header = headers.get("Message-ID", headers.get("Message-Id", ""))
+        thread_id = full.get("threadId", msg_id)
         body = extract_email_body(full["payload"]) or full.get("snippet", "")
 
         inbox_filename = f"gmail_{msg_id}.md"
         (NEEDS_ACTION_PATH / inbox_filename).write_text(
             f"---\ntype: email\nfrom: {sender}\nsubject: {subject}\n"
-            f"gmail_message_id: {msg_id}\nreceived_at: {time.strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n"
+            f"gmail_message_id: {msg_id}\ngmail_thread_id: {thread_id}\n"
+            f"gmail_rfc_message_id: \"{message_id_header}\"\n"
+            f"received_at: {time.strftime('%Y-%m-%dT%H:%M:%SZ')}\n---\n\n"
             f"{body.strip()}\n"
         )
 

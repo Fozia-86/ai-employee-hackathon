@@ -22,10 +22,13 @@ def is_cloud_execution() -> bool:
 
 
 def write_social_draft(platform: str, content: str) -> str:
-    """Writes a pending-approval draft instead of posting live, for EXECUTION_ZONE=cloud."""
-    PENDING_APPROVAL_DIR.mkdir(parents=True, exist_ok=True)
+    """Writes a pending-approval draft instead of posting live, for EXECUTION_ZONE=cloud.
+    Filed under Pending_Approval/General/ -- social drafts have no triage `category`
+    concept (unlike email), so they get the General domain folder (Requirement 3a)."""
+    general_dir = PENDING_APPROVAL_DIR / "General"
+    general_dir.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    draft_path = PENDING_APPROVAL_DIR / f"social_draft_{platform}_{ts}.md"
+    draft_path = general_dir / f"social_draft_{platform}_{ts}.md"
     draft_body = (
         "---\n"
         "type: social_draft\n"

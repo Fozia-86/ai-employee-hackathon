@@ -1,2 +1,5 @@
 .env
 .vault_key
+credentials.json
+token.json
+venv/

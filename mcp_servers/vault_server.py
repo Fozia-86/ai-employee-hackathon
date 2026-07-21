@@ -37,6 +37,15 @@ BUSINESS_KEYWORDS = [
     "service", "project", "onboarding", "contract", "inquiry", "collaborate",
 ]
 
+# === Domain-folder routing (Requirement 3a) ===
+# Distinct from classify_domain() in agent_runner.py, which means Personal/Business.
+# This maps email category (from classify_email below) to the Needs_Action/Plans/
+# Pending_Approval subfolder a trigger/draft should live in.
+EMAIL_CATEGORY_TO_FOLDER = {"business_inquiry": "Sales", "support": "Support"}
+
+def category_to_folder(category: str) -> str:
+    return EMAIL_CATEGORY_TO_FOLDER.get(category, "General")
+
 def classify_email(subject: str, body: str) -> str:
     """Simple keyword-based triage. Returns 'spam', 'support', 'business_inquiry',
     or 'irrelevant' (no business keywords matched)."""
@@ -54,11 +63,15 @@ def _parse_discount_percentage(text: str):
     return float(match.group(1)) if match else None
 
 @mcp.tool()
-def triage_email(subject: str, sender: str, body: str) -> str:
+def triage_email(subject: str, sender: str, body: str, gmail_message_id: str = "",
+                  gmail_thread_id: str = "", gmail_rfc_message_id: str = "") -> str:
     """Classifies an inbound email and, if business-relevant, drafts a reply to
     /Pending_Approval/ (email_draft_<timestamp>.md). Never sends anything live --
     Cloud zone drafts only; a human on the Local zone reviews and sends.
-    Spam/irrelevant emails are logged and skipped, no draft is created."""
+    Spam/irrelevant emails are logged and skipped, no draft is created.
+    gmail_message_id/gmail_thread_id/gmail_rfc_message_id (all optional, blank
+    for non-Gmail/dummy sources) are carried into the draft frontmatter so a
+    later send step can thread the reply correctly."""
     category = classify_email(subject, body)
 
     if category in ("spam", "irrelevant"):
@@ -125,7 +138,8 @@ def triage_email(subject: str, sender: str, body: str) -> str:
         )
 
     filename = f"email_draft_{timestamp}_{unique_suffix}.md"
-    pending_dir = os.path.join(VAULT_PATH, "Pending_Approval")
+    folder = category_to_folder(category)
+    pending_dir = os.path.join(VAULT_PATH, "Pending_Approval", folder)
     os.makedirs(pending_dir, exist_ok=True)
     target_path = os.path.join(pending_dir, filename)
 
@@ -140,6 +154,9 @@ def triage_email(subject: str, sender: str, body: str) -> str:
         f"decision: {decision}\n"
         f"hitl_required: {hitl_required}\n"
         + (f"cited_rule: \"{cited_rule}\"\n" if cited_rule else "")
+        + (f"gmail_message_id: {gmail_message_id}\n" if gmail_message_id else "")
+        + (f"gmail_thread_id: {gmail_thread_id}\n" if gmail_thread_id else "")
+        + (f"gmail_rfc_message_id: \"{gmail_rfc_message_id}\"\n" if gmail_rfc_message_id else "")
         + f"---\n\n"
         f"# Email Draft — {category}\n\n"
         f"## Original Email\n"
@@ -180,6 +197,72 @@ def monitor_triggers() -> str:
     return "\n".join(results)
 
 @mcp.tool()
+def claim_trigger(agent_id: str = "cloud-agent") -> str:
+    """Claim-by-move (Requirement 2): moves one TRIGGER_*.md (and its
+    original_file sibling, if present) out of /Needs_Action/ into
+    /In_Progress/<agent_id>/ before it is processed, so a trigger is never
+    read/processed by more than one agent and a crash mid-processing leaves a
+    durable marker instead of silently reprocessing or losing the trigger.
+    Returns the same "File: ...\\nContent:\\n...\\n---" format monitor_triggers
+    used to return, so existing parsing (extract_original_file, discount/
+    customer regexes) is unaffected. Returns "No trigger files found in
+    /Needs_Action." (unchanged sentinel string) when there is nothing to do."""
+    in_progress_dir = os.path.join(VAULT_PATH, "In_Progress", agent_id)
+    os.makedirs(in_progress_dir, exist_ok=True)
+
+    # Recovery-first: if this agent already has a claimed trigger sitting in
+    # In_Progress/ (e.g. a crash happened after claiming but before the
+    # archive_processed_triggers call at the end of a cycle), re-serve it
+    # instead of claiming a new one, so work is never silently stranded.
+    stranded = glob.glob(os.path.join(in_progress_dir, "TRIGGER_*"))
+    if stranded:
+        filepath = stranded[0]
+        filename = os.path.basename(filepath)
+        with open(filepath, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return f"File: {filename}\nContent:\n{content}\n---"
+
+    needs_action_dir = os.path.join(VAULT_PATH, "Needs_Action")
+    # Root-level triggers (where watcher.py/gmail_watcher.py drop them) plus
+    # one subfolder level deep (Needs_Action/Sales/, etc. -- e.g. if a human
+    # manually filed something in Obsidian) are both eligible.
+    candidates = glob.glob(os.path.join(needs_action_dir, "TRIGGER_*")) + \
+                 glob.glob(os.path.join(needs_action_dir, "*", "TRIGGER_*"))
+    candidates = [f for f in candidates if os.path.isfile(f)]
+    candidates.sort(key=os.path.getmtime)
+
+    already_claimed = set(
+        os.path.basename(f)
+        for f in glob.glob(os.path.join(VAULT_PATH, "In_Progress", "*", "TRIGGER_*"))
+    )
+
+    for filepath in candidates:
+        filename = os.path.basename(filepath)
+        if filename in already_claimed:
+            # Already claimed by another agent -- skip (defensive; guards a
+            # future multi-agent race, though only one agent runs today).
+            continue
+
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except Exception as e:
+            return f"Error reading {filename}: {str(e)}"
+
+        match = re.search(r'original_file:\s*(\S+)', content)
+        if match:
+            orig_name = match.group(1).strip()
+            orig_path = os.path.join(os.path.dirname(filepath), orig_name)
+            if os.path.exists(orig_path):
+                shutil.move(orig_path, os.path.join(in_progress_dir, orig_name))
+
+        shutil.move(filepath, os.path.join(in_progress_dir, filename))
+
+        return f"File: {filename}\nContent:\n{content}\n---"
+
+    return "No trigger files found in /Needs_Action."
+
+@mcp.tool()
 def search_kb(query: str) -> str:
     """Reads system knowledge_base.md rules."""
     kb_file = os.path.join(VAULT_PATH, "Knowledge_Base", "knowledge_base.md")
@@ -193,12 +276,15 @@ def search_kb(query: str) -> str:
         return f"Error reading Knowledge Base: {str(e)}"
 
 @mcp.tool()
-def write_approval_file(filename: str, content: str) -> str:
-    """Writes escalation file to /Pending_Approval/."""
+def write_approval_file(filename: str, content: str, folder: str = "Sales") -> str:
+    """Writes escalation file to /Pending_Approval/<folder>/ (folder defaults to
+    Sales -- the deal/discount escalation pipeline is this tool's only caller today)."""
     safe_filename = os.path.basename(filename)
     if not safe_filename.endswith(".md"):
         safe_filename += ".md"
-    target_path = os.path.join(VAULT_PATH, "Pending_Approval", safe_filename)
+    target_dir = os.path.join(VAULT_PATH, "Pending_Approval", folder)
+    os.makedirs(target_dir, exist_ok=True)
+    target_path = os.path.join(target_dir, safe_filename)
     try:
         with open(target_path, 'w', encoding='utf-8') as f:
             f.write(content)
@@ -207,12 +293,12 @@ def write_approval_file(filename: str, content: str) -> str:
         return f"Error writing approval file: {str(e)}"
 
 @mcp.tool()
-def archive_processed_triggers(outcome: str, note: str = "") -> str:
-    """Moves all current /Needs_Action/TRIGGER_*.md files (and their referenced
-    original_file siblings) into /Done/Processed_Triggers/, timestamped, so they
-    are not picked up and reprocessed by monitor_triggers on the next poll cycle.
-    outcome should be 'success' or 'failed'."""
-    directory = os.path.join(VAULT_PATH, "Needs_Action")
+def archive_processed_triggers(outcome: str, note: str = "", agent_id: str = "cloud-agent") -> str:
+    """Moves all current /In_Progress/<agent_id>/TRIGGER_*.md files (and their
+    referenced original_file siblings) into /Done/Processed_Triggers/, timestamped,
+    so a claimed trigger (see claim_trigger) is never left in In_Progress/ or
+    reprocessed. outcome should be 'success' or 'failed'."""
+    directory = os.path.join(VAULT_PATH, "In_Progress", agent_id)
     pattern = os.path.join(directory, "TRIGGER_*")
     files = glob.glob(pattern)
 
@@ -282,7 +368,14 @@ def write_error_recovery_file(details: str) -> str:
 
 @mcp.tool()
 def update_dashboard(status_table: str) -> str:
-    """Updates Dashboard.md with a status table."""
+    """Updates Dashboard.md with a status table. UNUSED by the Cloud agent loop
+    as of Requirement 3b (single-writer Dashboard fix) -- this full-file overwrite
+    was silently destroying the `## Recent Execution Log` section that
+    review_approvals.py/send_approved_emails.py append to. agent_runner.py now
+    calls write_dashboard_update() instead, which writes to /Updates/ for the
+    Local-only merge_dashboard.py to merge in without clobbering the log. Kept
+    defined (not deleted) for lower risk; do not wire a new Cloud caller to this
+    -- use write_dashboard_update instead."""
     dashboard_file = os.path.join(VAULT_PATH, "Dashboard.md")
     try:
         with open(dashboard_file, 'w', encoding='utf-8') as f:
@@ -291,6 +384,31 @@ def update_dashboard(status_table: str) -> str:
         return f"Dashboard successfully updated at {dashboard_file}"
     except Exception as e:
         return f"Error writing dashboard: {str(e)}"
+
+@mcp.tool()
+def write_dashboard_update(status_table: str, note: str = "") -> str:
+    """Requirement 3b (Dashboard single-writer): writes a small timestamped
+    signal file to /Updates/ instead of touching Dashboard.md directly. The
+    Cloud agent loop calls this after every processed trigger; only the
+    Local-only merge_dashboard.py actually writes Dashboard.md, merging these
+    signals in without destroying the Recent Execution Log section."""
+    updates_dir = os.path.join(VAULT_PATH, "Updates")
+    os.makedirs(updates_dir, exist_ok=True)
+    timestamp = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    unique_suffix = uuid.uuid4().hex[:6]
+    filename = f"update_{timestamp}_{unique_suffix}.md"
+    target_path = os.path.join(updates_dir, filename)
+    content = (
+        f"---\ntype: dashboard_update\ncreated: {timestamp}\n---\n\n"
+        f"{status_table}\n"
+        + (f"\nnote: {note}\n" if note else "")
+    )
+    try:
+        with open(target_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return f"Dashboard update signal written to {target_path}"
+    except Exception as e:
+        return f"Error writing dashboard update signal: {str(e)}"
 
 @mcp.tool()
 def encrypt_sensitive_data(payload: str) -> str:

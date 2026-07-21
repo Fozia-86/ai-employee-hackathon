@@ -2,6 +2,8 @@
 *.session
 credentials/
 secrets/
+credentials.json
+token.json
 __pycache__/
 *.pyc
 venv/
