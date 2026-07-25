@@ -1,3 +1,4 @@
+<img width="1316" height="645" alt="obsi" src="https://github.com/user-attachments/assets/c703f05e-d46f-480f-aa90-bf06874883d4" />
 # AI Employee — Autonomous Vault-Based Business Agent
 
 ## Demo Video
