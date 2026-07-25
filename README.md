@@ -1,5 +1,8 @@
 # AI Employee — Autonomous Vault-Based Business Agent
 
+## Demo Video
+[Watch the full demo](https://drive.google.com/file/d/1iqiwMuZS8swbI_7vQP7FNUPEu6Z3hyK3/view?usp=sharing)
+
 An Obsidian vault that *is* an autonomous "AI Employee." Markdown files are the
 state/database, Python helper scripts are the tools, an MCP server orchestrates
 the loop, and Claude (via the `obsidian_vault_manager` skill) is the runtime
