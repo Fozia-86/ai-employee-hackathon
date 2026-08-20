@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Business Rules — {{ brand_name }}{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-1">Business Rule &amp; Policy Manager</h1>
+<p class="text-slate-500 mb-4">Adjust the governance parameters that drive autonomous decisions, without hand-editing <code>Knowledge_Base/knowledge_base.md</code>.</p>
+
+{% if saved %}
+<div class="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm">
+  Saved — the Knowledge Base has been updated.
+</div>
+{% endif %}
+{% if error %}
+<div class="mb-6 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 px-4 py-3 text-sm">
+  {{ error }}
+</div>
+{% endif %}
+
+<form method="post" action="/rules/save" class="bg-white rounded-2xl shadow divide-y divide-slate-100">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+  <div class="p-4 flex items-center gap-4">
+    <label class="w-64 shrink-0 text-sm font-medium text-slate-700" for="discount_ceiling">
+      Autonomous Discount Ceiling (%)
+      <div class="text-xs font-normal text-slate-400 mt-0.5">Requests above this always route to Pending_Approval/ for HITL review.</div>
+    </label>
+    <input type="number" min="0" max="100" id="discount_ceiling" name="discount_ceiling"
+      value="{{ discount_ceiling }}" required
+      class="w-32 text-sm border border-slate-300 rounded-lg px-3 py-2">
+  </div>
+
+  <div class="p-4 flex items-center gap-4 bg-amber-50">
+    <label class="w-64 shrink-0 text-sm font-medium text-slate-700" for="confirm_text">
+      Confirm change
+      <div class="text-xs font-normal text-slate-500 mt-0.5">This controls every future deal's auto-approve/escalate outcome. Type <code>CONFIRM</code> to save.</div>
+    </label>
+    <input type="text" id="confirm_text" name="confirm_text" placeholder="CONFIRM" required autocomplete="off"
+      class="w-40 text-sm border border-amber-300 rounded-lg px-3 py-2">
+  </div>
+
+  <div class="p-4 flex items-center gap-4">
+    <label class="w-64 shrink-0 text-sm font-medium text-slate-700" for="escalation_domains">
+      Escalation Domains
+      <div class="text-xs font-normal text-slate-400 mt-0.5">Comma-separated (e.g. Sales, Support).</div>
+    </label>
+    <input type="text" id="escalation_domains" name="escalation_domains" value="{{ escalation_domains }}"
+      class="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2">
+  </div>
+
+  <div class="p-4 flex items-center gap-4">
+    <label class="w-64 shrink-0 text-sm font-medium text-slate-700" for="operating_tone">
+      Operating Tone
+    </label>
+    <input type="text" id="operating_tone" name="operating_tone" value="{{ operating_tone }}"
+      class="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2">
+  </div>
+
+  <div class="p-4 flex items-center gap-4">
+    <label class="w-64 shrink-0 text-sm font-medium text-slate-700" for="operating_hours">
+      Business Operating Hours
+    </label>
+    <input type="text" id="operating_hours" name="operating_hours" value="{{ operating_hours }}"
+      class="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2">
+  </div>
+
+  <div class="p-4">
+    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700">
+      Save Changes
+    </button>
+  </div>
+</form>
+
+<details class="mt-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+  <summary class="cursor-pointer select-none text-sm font-medium text-slate-600">View raw knowledge_base.md</summary>
+  <pre class="mt-3 text-xs bg-slate-50 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap">{{ raw_markdown }}</pre>
+</details>
+{% endblock %}

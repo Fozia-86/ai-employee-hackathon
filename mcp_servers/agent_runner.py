@@ -12,8 +12,8 @@ from mcp.client.stdio import stdio_client
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
 load_dotenv(dotenv_path)
 
-VAULT_PATH = "/home/ubuntu/ai-employee-hackathon"
-PYTHON_EXEC = "/home/ubuntu/ai-employee-hackathon/venv/bin/python3"
+VAULT_PATH = os.environ.get("VAULT_PATH", os.getcwd())
+PYTHON_EXEC = os.environ.get("PYTHON_EXEC", sys.executable)
 
 # Setup independent parameters for multiple servers
 vault_params = StdioServerParameters(command=PYTHON_EXEC, args=[f"{VAULT_PATH}/mcp_servers/vault_server.py"])
@@ -40,7 +40,29 @@ def parse_customer_email(text: str) -> str:
     match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
     if match:
         return match.group(0).strip()
-    return "sultan@gmail.com"  # Default fallback email
+    return "unknown@example.com"  # Neutral fallback -- was a stray personal-looking
+    # default ("sultan@gmail.com") left over from early demo/testing; a bare
+    # placeholder is used instead so a malformed trigger never gets
+    # attributed to a real-looking (but wrong) person.
+
+def looks_like_deal_request(text: str) -> bool:
+    """Guards the legacy deal/discount pipeline (2026-08 production-readiness
+    fix). Before this, ANY trigger that wasn't type:email or type:whatsapp
+    fell straight into the deal pipeline below with silent defaults
+    (discount_rate=0.0, customer="Unknown Customer") -- meaning a random,
+    unrelated file dropped into Inbox/ (a stray note, a misfiled document)
+    would silently be treated as a *completed* $3500 deal: a mock Odoo
+    invoice created, a fake "new partner onboarding" tweet/Facebook post
+    drafted, and a DEAL_COMPLETED audit entry logged, all for content that
+    was never actually a sales deal. Only proceed into that pipeline when the
+    trigger text plausibly is one -- an explicit "Customer/Client:" field
+    (parse_customer_name's own pattern) or an explicit "Discount: NN%" field
+    (parse_discount_percentage's primary, non-fallback pattern). Anything
+    else is treated as unrecognized, per Company_Handbook.md's own rule that
+    ambiguous tasks get isolated for human review, not silently actioned."""
+    has_customer_field = re.search(r'(Customer Name|Customer|Client):\s*\S', text, re.IGNORECASE) is not None
+    has_explicit_discount = re.search(r'(Discount|discount|Requested Discount|Requested discount):\s*(\d+)%', text) is not None
+    return has_customer_field or has_explicit_discount
 
 # === Domain Classification logic (Personal vs Business separation) ===
 def classify_domain(email: str) -> str:
@@ -75,6 +97,27 @@ def parse_email_fields(raw_text: str):
         "gmail_message_id": fm.get("gmail_message_id", ""),
         "gmail_thread_id": fm.get("gmail_thread_id", ""),
         "gmail_rfc_message_id": fm.get("gmail_rfc_message_id", "").strip('"'),
+    }
+
+def parse_whatsapp_fields(raw_text: str):
+    """Parses a whatsapp_watcher.py inbox file (frontmatter `type: whatsapp`,
+    `from:`, plain-text body). Returns None if the file isn't whatsapp-typed,
+    same fall-through contract as parse_email_fields() -- this must be
+    checked BEFORE the generic deal/discount pipeline, or a WhatsApp trigger
+    silently misroutes into an Odoo-invoice/social-draft flow it has nothing
+    to do with (found as a real bug: pre-existing WhatsApp triggers had no
+    dedicated dispatch at all)."""
+    fm_match = re.match(r'^---\s*\n(.*?)\n---\s*\n(.*)$', raw_text, re.DOTALL)
+    if not fm_match:
+        return None
+    frontmatter, body = fm_match.group(1), fm_match.group(2)
+    fm = dict(re.findall(r'^(\w+):\s*(.*)$', frontmatter, re.MULTILINE))
+    if fm.get("type") != "whatsapp":
+        return None
+    return {
+        "sender": fm.get("from", "(unknown chat)"),
+        "body": body.strip(),
+        "whatsapp_message_id": fm.get("whatsapp_message_id", ""),
     }
 
 async def execute_tool_with_retry(session, tool_name, arguments, max_retries=3):
@@ -135,6 +178,7 @@ async def run_agent_loop():
                     # existing discount pipeline is untouched when it's not an email.
                     original_file = extract_original_file(triggers_output)
                     email_fields = None
+                    whatsapp_fields = None
                     if original_file:
                         # claim_trigger() already moved this file (and its
                         # TRIGGER_ wrapper) into In_Progress/cloud-agent/ before
@@ -143,9 +187,45 @@ async def run_agent_loop():
                         original_path = os.path.join(VAULT_PATH, "In_Progress", "cloud-agent", original_file)
                         if os.path.exists(original_path):
                             with open(original_path, "r", encoding="utf-8") as f:
-                                email_fields = parse_email_fields(f.read())
+                                raw_original = f.read()
+                            email_fields = parse_email_fields(raw_original)
+                            if not email_fields:
+                                whatsapp_fields = parse_whatsapp_fields(raw_original)
 
-                    if email_fields:
+                    if whatsapp_fields:
+                        print(f"💬 WhatsApp trigger detected -> Sender: {whatsapp_fields['sender']}")
+                        triage_result = await execute_tool_with_retry(
+                            session_v,
+                            "triage_whatsapp",
+                            {
+                                "sender": whatsapp_fields["sender"],
+                                "body": whatsapp_fields["body"],
+                                "whatsapp_message_id": whatsapp_fields["whatsapp_message_id"],
+                            }
+                        )
+                        print(f"💬 WhatsApp Triage Result: {triage_result}")
+
+                        status_table = (
+                            "| Deal Identifier | Status | Action/Details | Error Attempts |\n"
+                            "| :--- | :--- | :--- | :--- |\n"
+                            f"| {original_file} | WhatsApp Triaged | {triage_result[:150]} | 0 |\n"
+                        )
+                        await execute_tool_with_retry(
+                            session_v, "write_dashboard_update",
+                            {"status_table": status_table, "note": f"WhatsApp triaged: {original_file}"}
+                        )
+
+                        audit_msg = (
+                            f"WhatsApp message from {whatsapp_fields['sender']} triaged. "
+                            f"Result: {triage_result}"
+                        )
+                        await execute_tool_with_retry(
+                            session_v,
+                            "write_audit_log",
+                            {"event_type": "WHATSAPP_TRIAGE", "domain_type": "Business", "details": audit_msg}
+                        )
+
+                    elif email_fields:
                         print(f"📧 Email trigger detected -> Subject: {email_fields['subject']}, Sender: {email_fields['sender']}")
                         triage_result = await execute_tool_with_retry(
                             session_v,
@@ -183,6 +263,21 @@ async def run_agent_loop():
                         )
 
                     else:
+                        if not looks_like_deal_request(triggers_output):
+                            # 2026-08 production-readiness fix: previously this branch ran
+                            # unconditionally for anything that wasn't type:email/type:whatsapp,
+                            # so an unrelated file dropped into Inbox/ would silently be treated
+                            # as a *completed* deal (mock invoice + draft social posts + a fake
+                            # DEAL_COMPLETED audit entry). Raising here routes it through the
+                            # existing Ralph Wiggum isolation path below (write_error_recovery_file
+                            # + archive as failed) instead of fabricating business activity.
+                            raise ValueError(
+                                "Trigger is not type:email, type:whatsapp, or a recognizable "
+                                "Customer/Discount deal request (no 'Customer:'/'Client:' or "
+                                "explicit 'Discount: NN%' field found) -- refusing to silently "
+                                "treat an unrecognized file as a completed sales deal."
+                            )
+
                         # RAG Check on Vault Server
                         guidelines = await execute_tool_with_retry(session_v, "search_kb", {"query": "discount"})
                         print("📖 Guidelines loaded successfully.")
@@ -196,8 +291,12 @@ async def run_agent_loop():
                         print(f"📊 Extracted Details -> Customer: {customer}, Email: {email}, Discount Requested: {discount_rate}%")
                         print(f"💼 Cross-Domain Routing: Classified as [{domain_route}] segment.")
     
-                        if discount_rate > 15.0:
-                            print("🚨 Discount exceeds limit (15%). Escalating to CEO...")
+                        # 20% is the KB's autonomous-discount ceiling (knowledge_base.md §3,
+                        # loyalty band) -- must match triage_email/triage_whatsapp's threshold
+                        # so the same discount is decided the same way regardless of channel.
+                        DISCOUNT_CEILING = 20.0
+                        if discount_rate > DISCOUNT_CEILING:
+                            print(f"🚨 Discount exceeds limit ({DISCOUNT_CEILING}%). Escalating to CEO...")
                             approval_content = (
                                 f"# Escalation Alert\n\n"
                                 f"- **Customer**: {customer}\n"

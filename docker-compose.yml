@@ -1,0 +1,88 @@
+version: "3.8"
+
+services:
+  agent-runner:
+    build: .
+    image: ai-employee-vault:latest
+    container_name: ai-employee-agent-runner
+    command: ["python3", "mcp_servers/agent_runner.py"]
+    restart: unless-stopped
+    environment:
+      - VAULT_PATH=/app
+      - PYTHON_EXEC=/usr/local/bin/python3
+      - EXECUTION_ZONE=${EXECUTION_ZONE:-cloud}
+      - CLOUD_ZONE=${CLOUD_ZONE:-true}
+    env_file:
+      - .env
+    volumes:
+      # State-machine folders (Inbox -> Needs_Action -> In_Progress -> Pending_Approval -> Approved -> Done)
+      - ./Inbox:/app/Inbox
+      - ./Needs_Action:/app/Needs_Action
+      - ./In_Progress:/app/In_Progress
+      - ./Pending_Approval:/app/Pending_Approval
+      - ./Approved:/app/Approved
+      - ./Rejected:/app/Rejected
+      - ./Done:/app/Done
+      - ./Updates:/app/Updates
+      - ./Plans:/app/Plans
+      - ./Knowledge_Base:/app/Knowledge_Base
+      - ./Audit_Logs:/app/Audit_Logs
+      - ./Secure_Records:/app/Secure_Records
+      - ./Dashboard.md:/app/Dashboard.md
+      # Per-tenant secrets/session state -- never baked into the image, never shared across tenants
+      - ./.env:/app/.env
+      - ./.vault_key:/app/.vault_key
+      - ./credentials.json:/app/credentials.json
+      - ./token.json:/app/token.json
+      - ./.whatsapp_session:/app/.whatsapp_session
+
+  watcher:
+    build: .
+    image: ai-employee-vault:latest
+    container_name: ai-employee-watcher
+    command: ["python3", "watcher.py"]
+    restart: unless-stopped
+    environment:
+      - VAULT_PATH=/app
+    env_file:
+      - .env
+    volumes:
+      - ./Inbox:/app/Inbox
+      - ./Needs_Action:/app/Needs_Action
+      - ./.env:/app/.env
+
+  web-gui:
+    build: .
+    image: ai-employee-vault:latest
+    container_name: ai-employee-web-gui
+    command: ["python3", "web_gui/app.py"]
+    restart: unless-stopped
+    # Binds 0.0.0.0 inside the container by design -- the container's own
+    # network namespace is the isolation boundary, not the app-level host
+    # check in web_gui/app.py (that check exists for someone running the
+    # script bare-metal on a shared host). Only publish the "ports:" mapping
+    # below once WEB_ADMIN_PASSWORD (Phase 4 session login) is set for real in
+    # .env -- the image ships with a demo default password, see CLAUDE.md.
+    environment:
+      - VAULT_PATH=/app
+      - WEB_GUI_HOST=0.0.0.0
+      - WEB_GUI_PORT=8899
+      - EXECUTION_ZONE=${EXECUTION_ZONE:-cloud}
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8899:8899"
+    volumes:
+      - ./Pending_Approval:/app/Pending_Approval
+      - ./Approved:/app/Approved
+      - ./Rejected:/app/Rejected
+      - ./Done:/app/Done
+      - ./Updates:/app/Updates
+      - ./Needs_Action:/app/Needs_Action
+      - ./In_Progress:/app/In_Progress
+      - ./Audit_Logs:/app/Audit_Logs
+      - ./Dashboard.md:/app/Dashboard.md
+      - ./.env:/app/.env
+      - ./.vault_key:/app/.vault_key
+      - ./credentials.json:/app/credentials.json
+      - ./token.json:/app/token.json

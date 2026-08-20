@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}System Health — {{ brand_name }}{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-1">System Health &amp; Audit Logs</h1>
+<p class="text-slate-500 mb-4">Live metrics and the most recent entries from <code>Audit_Logs/audit_log.json</code>.</p>
+
+<div class="grid gap-4 sm:grid-cols-4 mb-6">
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Execution Zone</div>
+    <div class="text-lg font-semibold {% if local_zone %}text-emerald-600{% else %}text-amber-600{% endif %}">
+      {{ metrics.execution_zone }}
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Odoo Connection</div>
+    <div class="text-lg font-semibold {% if metrics.odoo_status == 'Connected' %}text-emerald-600{% elif 'Not configured' in metrics.odoo_status %}text-slate-500{% else %}text-rose-600{% endif %}">
+      {{ metrics.odoo_status }}
+    </div>
+  </div>
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Active Triggers</div>
+    <div class="text-lg font-semibold text-slate-700">{{ metrics.active_triggers }}</div>
+  </div>
+  <div class="bg-white rounded-2xl shadow p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Pending Approvals</div>
+    <div class="text-lg font-semibold text-slate-700">{{ metrics.pending_approvals }}</div>
+  </div>
+</div>
+
+<h2 class="text-lg font-semibold mb-2">Recent Audit Log ({{ audit_entries|length }} of last 20)</h2>
+<div class="bg-white rounded-2xl shadow overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="text-left text-xs text-slate-400 uppercase tracking-wide border-b">
+        <th class="px-4 py-2">Timestamp</th>
+        <th class="px-4 py-2">Status</th>
+        <th class="px-4 py-2">Domain</th>
+        <th class="px-4 py-2">Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in audit_entries %}
+      {% set et = entry.event_type %}
+      {% if 'FAILED' in et %}
+        {% set badge_bg, badge_text, word = 'bg-rose-50', 'text-rose-700', 'Failed' %}
+      {% elif 'REJECT' in et %}
+        {% set badge_bg, badge_text, word = 'bg-amber-50', 'text-amber-700', 'Rejected' %}
+      {% elif 'BUSINESS_RULE' in et %}
+        {% set badge_bg, badge_text, word = 'bg-sky-50', 'text-sky-700', 'Settings Updated' %}
+      {% elif 'APPROV' in et %}
+        {% set badge_bg, badge_text, word = 'bg-emerald-50', 'text-emerald-700', 'Approved' %}
+      {% elif 'SENT' in et %}
+        {% set badge_bg, badge_text, word = 'bg-emerald-50', 'text-emerald-700', 'Sent' %}
+      {% elif 'POSTED' in et %}
+        {% set badge_bg, badge_text, word = 'bg-emerald-50', 'text-emerald-700', 'Posted' %}
+      {% elif 'RECORDED' in et %}
+        {% set badge_bg, badge_text, word = 'bg-emerald-50', 'text-emerald-700', 'Recorded' %}
+      {% else %}
+        {% set badge_bg, badge_text, word = 'bg-slate-100', 'text-slate-600', et.replace('_',' ').title() %}
+      {% endif %}
+      <tr class="border-b last:border-0 align-top">
+        <td class="px-4 py-2 whitespace-nowrap text-slate-500 font-mono text-xs">{{ entry.timestamp }}</td>
+        <td class="px-4 py-2 whitespace-nowrap">
+          <span class="text-xs font-bold px-2.5 py-1 rounded-full {{ badge_bg }} {{ badge_text }}">{{ word }}</span>
+        </td>
+        <td class="px-4 py-2 whitespace-nowrap text-slate-500">{{ entry.domain }}</td>
+        <td class="px-4 py-2 text-slate-600 break-all">{{ entry.details }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="px-4 py-8 text-center text-slate-400">No audit log entries yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -14,3 +14,16 @@ node_modules/
 .whatsapp_session/
 .stfolder/
 *.sync-conflict-*
+
+# Operational/business data - kabhi git mein track nahi karni
+Pending_Approval/
+Approved/
+Rejected/
+Done/
+Needs_Action/
+Updates/
+Audit_Logs/
+Secure_Records/
+CEO_Briefing_*.md
+*.swp
+.claude/settings.local.json

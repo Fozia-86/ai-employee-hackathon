@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f172a'/%3E%3Cpath d='M12 5l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 17.3l-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z' fill='%23fbbf24'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .nav-item.active { background: rgba(251,191,36,0.12); color: #fcd34d; }
+    .nav-item.active .nav-ico { color: #fbbf24; }
+    .nav-item { position: relative; }
+    .nav-item.active::before {
+      content: ""; position: absolute; left: -0.75rem; top: 6px; bottom: 6px; width: 3px;
+      background: linear-gradient(180deg, #f59e0b, #fbbf24); border-radius: 0 4px 4px 0;
+    }
+    ::-webkit-scrollbar { width: 9px; height: 9px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 5px; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased">
+  <div class="md:flex min-h-screen">
+
+    <!-- Mobile top bar -->
+    <div class="md:hidden sticky top-0 z-20 bg-gradient-to-r from-slate-950 to-slate-900 text-white shadow-md">
+      <div class="flex items-center justify-between px-4 py-3">
+        <a href="/" class="flex items-center gap-2.5 min-w-0">
+          <span class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-500 text-slate-900 font-extrabold text-xs shrink-0">NA</span>
+          <span class="text-sm font-bold tracking-tight truncate">{{ brand_name }}</span>
+        </a>
+        <form method="post" action="/logout">
+          <button type="submit" class="text-[11px] text-slate-300 hover:text-rose-400 border border-slate-600 hover:border-rose-400 rounded-full px-3 py-1.5 transition-colors">Logout</button>
+        </form>
+      </div>
+      <nav class="flex gap-1 overflow-x-auto px-2 pb-2 text-xs font-medium">
+        <a href="/" class="whitespace-nowrap px-3 py-1.5 rounded-full {% if request.url.path == '/' %}bg-amber-400/15 text-amber-300{% else %}text-slate-300{% endif %}">Home</a>
+        <a href="/approvals" class="whitespace-nowrap px-3 py-1.5 rounded-full {% if request.url.path.startswith('/approvals') %}bg-amber-400/15 text-amber-300{% else %}text-slate-300{% endif %}">Approvals</a>
+        <a href="/rules" class="whitespace-nowrap px-3 py-1.5 rounded-full {% if request.url.path.startswith('/rules') %}bg-amber-400/15 text-amber-300{% else %}text-slate-300{% endif %}">Rules</a>
+        <a href="/settings" class="whitespace-nowrap px-3 py-1.5 rounded-full {% if request.url.path.startswith('/settings') %}bg-amber-400/15 text-amber-300{% else %}text-slate-300{% endif %}">Setup</a>
+        <a href="/health" class="whitespace-nowrap px-3 py-1.5 rounded-full {% if request.url.path.startswith('/health') %}bg-amber-400/15 text-amber-300{% else %}text-slate-300{% endif %}">Health</a>
+        <a href="/about" class="whitespace-nowrap px-3 py-1.5 rounded-full {% if request.url.path.startswith('/about') %}bg-amber-400/15 text-amber-300{% else %}text-slate-300{% endif %}">About</a>
+      </nav>
+    </div>
+
+    <!-- Desktop sidebar -->
+    <aside class="hidden md:flex md:flex-col w-64 shrink-0 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white sticky top-0 h-screen">
+      <a href="/" class="flex items-center gap-3 px-6 py-6 border-b border-white/10">
+        <span class="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900 font-extrabold text-sm shadow-lg shadow-amber-900/30 shrink-0">NA</span>
+        <div class="min-w-0">
+          <div class="text-[15px] font-bold tracking-tight leading-tight truncate">{{ brand_name }}</div>
+          <div class="text-[10.5px] text-slate-400 tracking-wide">by NAADVION IT-Solutions</div>
+        </div>
+      </a>
+
+      <nav class="flex-1 px-4 py-5 space-y-1 text-sm">
+        <div class="px-3 pb-2 text-[10.5px] font-semibold text-slate-500 uppercase tracking-widest">Overview</div>
+        <a href="/" class="nav-item {% if request.url.path == '/' %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium">
+          <svg class="nav-ico w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+          Home
+        </a>
+        <a href="/approvals" class="nav-item {% if request.url.path.startswith('/approvals') %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium">
+          <svg class="nav-ico w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 4.556-3.03 8.4-7.182 9.63a1.51 1.51 0 01-1.636 0C8.03 20.4 5 16.556 5 12V6.741c0-.998.616-1.887 1.548-2.242l4.5-1.632a1.5 1.5 0 011.904 0l4.5 1.632A2.401 2.401 0 0121 6.741V12z"/></svg>
+          Approval Center
+        </a>
+
+        <div class="px-3 pt-5 pb-2 text-[10.5px] font-semibold text-slate-500 uppercase tracking-widest">Configure</div>
+        <a href="/rules" class="nav-item {% if request.url.path.startswith('/rules') %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium">
+          <svg class="nav-ico w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m9 12h3.75M13.5 18a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 18H10.5M13.5 12h6.75M13.5 12a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 12H10.5"/></svg>
+          Business Rules
+        </a>
+        <a href="/settings" class="nav-item {% if request.url.path.startswith('/settings') %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium">
+          <svg class="nav-ico w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87a6.5 6.5 0 01.22.127c.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.43.992a7.723 7.723 0 010 .255c-.008.38.137.752.43.992l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a7.72 7.72 0 010-.255c.007-.38-.138-.752-.43-.992l-1.004-.827a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.28z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Setup Wizard
+        </a>
+        <a href="/health" class="nav-item {% if request.url.path.startswith('/health') %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium">
+          <svg class="nav-ico w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>
+          System Health
+        </a>
+        <a href="/about" class="nav-item {% if request.url.path.startswith('/about') %}active{% endif %} flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors font-medium">
+          <svg class="nav-ico w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+          About
+        </a>
+      </nav>
+
+      <div class="px-4 py-4 border-t border-white/10">
+        <form method="post" action="/logout">
+          <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-white/5 transition-colors text-sm font-medium">
+            <svg class="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25"/></svg>
+            Logout
+          </button>
+        </form>
+      </div>
+    </aside>
+
+    <main class="flex-1 min-w-0">
+      <div class="max-w-6xl mx-auto px-4 sm:px-8 py-8">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
+  </div>
+</body>
+</html>

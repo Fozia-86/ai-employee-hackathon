@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign in — {{ brand_name }}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230f172a'/%3E%3Cpath d='M12 5l2.4 4.9 5.4.8-3.9 3.8.9 5.4L12 17.3l-4.8 2.6.9-5.4-3.9-3.8 5.4-.8z' fill='%23fbbf24'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .grid-pattern {
+      background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                         linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+    }
+    .glow { background: radial-gradient(55% 45% at 50% 8%, rgba(251,191,36,0.16), transparent 70%); }
+    @keyframes pulse-slow { 0%,100% { opacity: .55; } 50% { opacity: 1; } }
+    .pulse-dot { animation: pulse-slow 2.6s ease-in-out infinite; }
+  </style>
+</head>
+<body class="min-h-screen font-sans text-slate-800">
+  <div class="min-h-screen lg:flex">
+
+    <!-- Left showcase panel -->
+    <div class="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex-col justify-between px-14 py-12 grid-pattern glow overflow-hidden">
+      <div class="relative">
+        <div class="flex items-center gap-3">
+          <span class="flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900 font-extrabold text-sm shadow-lg shadow-amber-900/30">NA</span>
+          <div>
+            <div class="text-base font-bold tracking-tight">{{ brand_name }}</div>
+            <div class="text-[11px] text-slate-400 tracking-wide">by NAADVION IT-Solutions</div>
+          </div>
+        </div>
+
+        <h1 class="mt-16 text-3xl font-extrabold leading-tight max-w-md">Your business, working<br>even when you're not.</h1>
+        <p class="mt-4 text-slate-400 text-sm max-w-sm leading-relaxed">
+          Emails, WhatsApp and social media handled around the clock — every important
+          decision still waits for your approval.
+        </p>
+
+        <ul class="mt-8 space-y-3 text-sm">
+          <li class="flex items-center gap-2.5 text-slate-300">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            24/7 monitoring across every channel
+          </li>
+          <li class="flex items-center gap-2.5 text-slate-300">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            Every real action needs your human approval
+          </li>
+          <li class="flex items-center gap-2.5 text-slate-300">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+            Encrypted, audited, fully under your control
+          </li>
+        </ul>
+      </div>
+
+      <!-- Abstract network illustration -->
+      <div class="relative mt-10">
+        <svg viewBox="0 0 480 220" class="w-full h-auto opacity-90">
+          <g stroke="rgba(251,191,36,0.35)" stroke-width="1.2" fill="none">
+            <line x1="60" y1="150" x2="150" y2="90"/>
+            <line x1="150" y1="90" x2="250" y2="60"/>
+            <line x1="250" y1="60" x2="340" y2="100"/>
+            <line x1="340" y1="100" x2="420" y2="60"/>
+            <line x1="150" y1="90" x2="230" y2="150"/>
+            <line x1="230" y1="150" x2="340" y2="100"/>
+            <line x1="230" y1="150" x2="330" y2="180"/>
+            <line x1="60" y1="150" x2="120" y2="190"/>
+          </g>
+          <circle cx="60" cy="150" r="5" fill="#fbbf24" class="pulse-dot"/>
+          <circle cx="150" cy="90" r="4" fill="#fcd34d"/>
+          <circle cx="250" cy="60" r="6" fill="#f59e0b" class="pulse-dot"/>
+          <circle cx="340" cy="100" r="4" fill="#fcd34d"/>
+          <circle cx="420" cy="60" r="5" fill="#fbbf24" class="pulse-dot"/>
+          <circle cx="230" cy="150" r="5" fill="#fcd34d"/>
+          <circle cx="330" cy="180" r="4" fill="#f59e0b"/>
+          <circle cx="120" cy="190" r="4" fill="#fcd34d"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Right form panel -->
+    <div class="flex-1 flex items-center justify-center px-4 py-12 bg-slate-50 lg:bg-white">
+      <div class="w-full max-w-sm">
+        <div class="flex flex-col items-center lg:items-start mb-6 lg:hidden">
+          <span class="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-slate-900 font-extrabold text-lg shadow-lg shadow-amber-900/30 mb-3">NA</span>
+          <span class="text-slate-900 text-lg font-bold tracking-tight">{{ brand_name }}</span>
+          <span class="text-slate-400 text-[11px] tracking-wide mt-0.5">by NAADVION IT-Solutions</span>
+        </div>
+
+        <div class="w-full bg-white rounded-2xl shadow-2xl lg:shadow-none lg:border lg:border-slate-100 p-6">
+          <div class="mb-1 text-lg font-bold text-slate-900">Sign in to your dashboard</div>
+          <p class="text-sm text-slate-500 mb-5">Admin sign-in required to view or act on anything below.</p>
+
+          {% if error == "locked" %}
+          <div class="mb-4 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 px-3 py-2 text-sm">
+            Too many failed attempts. Try again in {{ locked_seconds }} second{{ "s" if locked_seconds != 1 else "" }}.
+          </div>
+          {% elif error %}
+          <div class="mb-4 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 px-3 py-2 text-sm">
+            Incorrect password.
+          </div>
+          {% endif %}
+
+          {% if using_default %}
+          <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-3 py-2 text-xs">
+            <strong>Demo mode:</strong> <code>WEB_ADMIN_PASSWORD</code> is not set in <code>.env</code> —
+            the default demo password is <code>changeme-admin</code>. Set a real password in the Setup
+            Wizard (once logged in) before using this outside localhost.
+          </div>
+          {% endif %}
+
+          <form method="post" action="/login" class="flex flex-col gap-3">
+            <input type="hidden" name="next" value="{{ next }}">
+            <label class="text-sm font-medium text-slate-700">
+              Admin password
+              <input type="password" name="password" autofocus required
+                class="mt-1 w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+            </label>
+            <button type="submit"
+              class="mt-1 px-4 py-2.5 rounded-lg text-sm font-semibold text-white bg-slate-900 hover:bg-black transition-colors">
+              Sign in
+            </button>
+          </form>
+        </div>
+
+        <p class="text-center lg:text-left text-[11px] text-slate-400 mt-5">Secured dashboard &middot; NAADVION IT-Solutions</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

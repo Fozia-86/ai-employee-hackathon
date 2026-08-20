@@ -10,6 +10,7 @@ EXECUTION_ZONE=local before touching this module.
 """
 import base64
 import json
+import logging
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -31,9 +32,17 @@ def get_gmail_service():
             creds = Credentials.from_authorized_user_file(str(TOKEN_FILE), SCOPES)
 
     if not creds or not creds.valid:
+        refreshed = False
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+                refreshed = True
+            except Exception as e:
+                # Same fallback fix as gmail_watcher.py's get_gmail_service() --
+                # a revoked/expired-beyond-refresh token must not crash the
+                # caller, it should fall through to a fresh consent flow.
+                logging.info(f"Token refresh failed ({e}) -- falling back to full re-consent.")
+        if not refreshed:
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
             creds = flow.run_local_server(port=OAUTH_PORT, open_browser=True)
         TOKEN_FILE.write_text(creds.to_json())

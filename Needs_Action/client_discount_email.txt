@@ -1,7 +1,0 @@
----
-type: email
-from: client_b@example.com
-subject: Request for Project Discount
----
-
-Hi, we want to start the Agentic Workflow Setup but our budget is tight. Can we get a 15% loyalty discount since this is our 4th project?

@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+{% block title %}Home — {{ brand_name }}{% endblock %}
+{% block content %}
+
+<div class="mb-8 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 text-white p-6 shadow-lg relative overflow-hidden">
+  <div class="absolute -right-10 -top-10 w-40 h-40 rounded-full bg-amber-400/10 blur-2xl"></div>
+  <svg viewBox="0 0 300 140" class="hidden sm:block absolute right-0 top-0 h-full w-64 opacity-60">
+    <g stroke="rgba(251,191,36,0.35)" stroke-width="1.2" fill="none">
+      <line x1="40" y1="100" x2="110" y2="55"/>
+      <line x1="110" y1="55" x2="190" y2="35"/>
+      <line x1="190" y1="35" x2="255" y2="70"/>
+      <line x1="110" y1="55" x2="170" y2="105"/>
+      <line x1="170" y1="105" x2="255" y2="70"/>
+    </g>
+    <circle cx="40" cy="100" r="4" fill="#fbbf24"/>
+    <circle cx="110" cy="55" r="3.5" fill="#fcd34d"/>
+    <circle cx="190" cy="35" r="5" fill="#f59e0b"/>
+    <circle cx="255" cy="70" r="4" fill="#fcd34d"/>
+    <circle cx="170" cy="105" r="3.5" fill="#fbbf24"/>
+  </svg>
+  <div class="relative">
+    <h1 class="text-xl sm:text-2xl font-bold">Welcome back 👋</h1>
+    <p class="text-slate-400 text-sm mt-1">Here's what <span class="text-amber-300 font-medium">{{ brand_name }}</span> has been doing, and what needs your attention.</p>
+  </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-8">
+  <div class="flex items-center justify-between mb-5">
+    <div>
+      <h2 class="text-sm font-semibold text-slate-700">How {{ brand_name }} Works</h2>
+      <p class="text-xs text-slate-400 mt-0.5">A 60-second look at what happens behind the scenes.</p>
+    </div>
+    <a href="/about" class="text-xs text-amber-600 hover:text-amber-700 font-medium whitespace-nowrap">Learn more &rarr;</a>
+  </div>
+  <div class="relative grid gap-6 sm:grid-cols-4">
+    <div class="hidden sm:block absolute top-6 left-[12.5%] right-[12.5%] h-0.5 bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200"></div>
+
+    <div class="relative flex flex-col items-center text-center gap-2.5">
+      <span class="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-amber-400 shadow-md">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"/></svg>
+      </span>
+      <div class="text-xs font-semibold text-slate-800">1. Message Arrives</div>
+      <div class="text-[11px] text-slate-500 leading-snug">Email, WhatsApp or social message comes in — any time, day or night.</div>
+    </div>
+
+    <div class="relative flex flex-col items-center text-center gap-2.5">
+      <span class="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-amber-400 shadow-md">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/></svg>
+      </span>
+      <div class="text-xs font-semibold text-slate-800">2. AI Reads &amp; Drafts</div>
+      <div class="text-[11px] text-slate-500 leading-snug">{{ brand_name }} understands it and prepares a reply, discount, or post.</div>
+    </div>
+
+    <div class="relative flex flex-col items-center text-center gap-2.5">
+      <span class="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-amber-400 shadow-md">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 4.556-3.03 8.4-7.182 9.63a1.51 1.51 0 01-1.636 0C8.03 20.4 5 16.556 5 12V6.741c0-.998.616-1.887 1.548-2.242l4.5-1.632a1.5 1.5 0 011.904 0l4.5 1.632A2.401 2.401 0 0121 6.741V12z"/></svg>
+      </span>
+      <div class="text-xs font-semibold text-slate-800">3. You Approve</div>
+      <div class="text-[11px] text-slate-500 leading-snug">Every real action waits in the Approval Center for your one-click decision.</div>
+    </div>
+
+    <div class="relative flex flex-col items-center text-center gap-2.5">
+      <span class="relative z-10 flex items-center justify-center w-12 h-12 rounded-full bg-slate-900 text-amber-400 shadow-md">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.7"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>
+      </span>
+      <div class="text-xs font-semibold text-slate-800">4. Sent &amp; Logged</div>
+      <div class="text-[11px] text-slate-500 leading-snug">Approved actions go out, and every step is recorded for you to review.</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid gap-4 sm:grid-cols-4 mb-8">
+  <a href="/approvals" class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-slate-100 p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Pending Approval</div>
+    <div class="text-2xl font-bold {% if pending_count > 0 %}text-amber-600{% else %}text-slate-700{% endif %}">{{ pending_count }}</div>
+  </a>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Approved (staged)</div>
+    <div class="text-2xl font-bold text-slate-700">{{ approved_count }}</div>
+  </div>
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Completed (Done/)</div>
+    <div class="text-2xl font-bold text-emerald-600">{{ done_count }}</div>
+  </div>
+  <a href="/health" class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-slate-100 p-4">
+    <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Total Actions Logged</div>
+    <div class="text-2xl font-bold text-slate-700">{{ total_actions_logged }}</div>
+  </a>
+</div>
+
+
+<div class="mb-8">
+  <h2 class="text-sm font-semibold text-slate-700 mb-3">Business Impact</h2>
+  <div class="grid gap-4 sm:grid-cols-4">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+      <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Hours Saved</div>
+      <div class="text-2xl font-bold text-emerald-600">{{ roi.hours_saved }}</div>
+      <div class="text-[11px] text-slate-400 mt-1">~{{ roi.inquiries_processed }} items &times; 15 min</div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+      <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Inquiries Processed</div>
+      <div class="text-2xl font-bold text-slate-700">{{ roi.inquiries_processed }}</div>
+      <div class="text-[11px] text-slate-400 mt-1">Emails, WhatsApp, social, payments</div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+      <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Value Processed</div>
+      <div class="text-2xl font-bold text-slate-700">${{ "%.2f"|format(roi.total_payment_value) }}</div>
+      <div class="text-[11px] text-slate-400 mt-1">Approved/drafted payments</div>
+    </div>
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+      <div class="text-xs text-slate-400 uppercase tracking-wide mb-1">Success Rate</div>
+      <div class="text-2xl font-bold {% if roi.success_rate_pct >= 90 %}text-emerald-600{% elif roi.success_rate_pct >= 70 %}text-amber-600{% else %}text-rose-600{% endif %}">{{ roi.success_rate_pct }}%</div>
+      <div class="text-[11px] text-slate-400 mt-1">Across all autonomous workflows</div>
+    </div>
+  </div>
+</div>
+
+<div class="grid gap-6 lg:grid-cols-3 mb-8">
+  <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+    <div class="flex items-center justify-between mb-3">
+      <h2 class="text-sm font-semibold text-slate-700">Channel Status</h2>
+      <a href="/settings" class="text-xs text-slate-400 hover:text-slate-600">Configure &rarr;</a>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {% for ch in channels %}
+      {% set dot = {'Live': 'bg-emerald-500', 'Cloud API': 'bg-emerald-500', 'Sandbox': 'bg-amber-400', 'Not configured': 'bg-slate-300', 'Draft-only': 'bg-sky-400'}.get(ch.status, 'bg-slate-300') %}
+      {% set text = {'Live': 'text-emerald-700', 'Cloud API': 'text-emerald-700', 'Sandbox': 'text-amber-700', 'Not configured': 'text-slate-400', 'Draft-only': 'text-sky-700'}.get(ch.status, 'text-slate-500') %}
+      <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 border border-slate-100">
+        <span class="text-lg">{{ ch.icon }}</span>
+        <div class="min-w-0">
+          <div class="text-xs font-medium text-slate-700 truncate">{{ ch.name }}</div>
+          <div class="text-[11px] {{ text }} flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full {{ dot }}"></span>{{ ch.status }}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+    <h2 class="text-sm font-semibold text-slate-700 mb-3">System</h2>
+    <div class="space-y-3 text-sm">
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">Execution Zone</span>
+        <span class="font-semibold {% if local_zone %}text-emerald-600{% else %}text-amber-600{% endif %}">{{ health.execution_zone }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">Odoo</span>
+        <span class="font-semibold {% if health.odoo_status == 'Connected' %}text-emerald-600{% elif 'Not configured' in health.odoo_status %}text-slate-400{% else %}text-rose-600{% endif %}">{{ health.odoo_status }}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-slate-500">Active Triggers</span>
+        <span class="font-semibold text-slate-700">{{ health.active_triggers }}</span>
+      </div>
+    </div>
+    <a href="/health" class="inline-block mt-4 text-xs text-slate-400 hover:text-slate-600">Full health &amp; audit log &rarr;</a>
+  </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-8">
+  <div class="flex items-center justify-between mb-4">
+    <h2 class="text-sm font-semibold text-slate-700">Recent Activity</h2>
+    <a href="/health" class="text-xs text-slate-400 hover:text-slate-600">View all &rarr;</a>
+  </div>
+  {% if recent_activity %}
+  <div class="relative">
+    <div class="absolute left-[15px] top-2 bottom-2 w-px bg-slate-100"></div>
+    <ul class="space-y-1">
+      {% for entry in recent_activity %}
+      {% set et = entry.event_type %}
+      {% if 'FAILED' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-rose-100', 'bg-rose-500', 'bg-rose-50', 'text-rose-700', 'M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'Failed' %}
+      {% elif 'REJECT' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-amber-100', 'bg-amber-500', 'bg-amber-50', 'text-amber-700', 'M6 18L18 6M6 6l12 12', 'Rejected' %}
+      {% elif 'BUSINESS_RULE' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-sky-100', 'bg-sky-500', 'bg-sky-50', 'text-sky-700', 'M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m9 12h3.75M13.5 18a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 18H10.5', 'Settings Updated' %}
+      {% elif 'APPROV' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-emerald-100', 'bg-emerald-500', 'bg-emerald-50', 'text-emerald-700', 'M4.5 12.75l6 6 9-13.5', 'Approved' %}
+      {% elif 'SENT' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-emerald-100', 'bg-emerald-500', 'bg-emerald-50', 'text-emerald-700', 'M4.5 12.75l6 6 9-13.5', 'Sent' %}
+      {% elif 'POSTED' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-emerald-100', 'bg-emerald-500', 'bg-emerald-50', 'text-emerald-700', 'M4.5 12.75l6 6 9-13.5', 'Posted' %}
+      {% elif 'RECORDED' in et %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-emerald-100', 'bg-emerald-500', 'bg-emerald-50', 'text-emerald-700', 'M4.5 12.75l6 6 9-13.5', 'Recorded' %}
+      {% else %}
+        {% set ring, bg, badge_bg, badge_text, ic, word = 'ring-slate-200', 'bg-slate-400', 'bg-slate-100', 'text-slate-600', 'M4.5 12.75l6 6 9-13.5', et.replace('_',' ').title() %}
+      {% endif %}
+      <li class="relative flex items-start gap-3 text-sm py-2.5 px-1 rounded-lg hover:bg-slate-50 transition-colors">
+        <span class="relative z-10 flex items-center justify-center w-8 h-8 rounded-full {{ bg }} ring-4 {{ ring }} shrink-0 mt-0.5">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="{{ ic }}"/></svg>
+        </span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold px-2.5 py-1 rounded-full {{ badge_bg }} {{ badge_text }} whitespace-nowrap">{{ word }}</span>
+            <span class="text-[11px] text-slate-400 whitespace-nowrap">{{ entry.timestamp }}</span>
+          </div>
+          <p class="text-slate-600 text-sm mt-1 break-words">{{ entry.details }}</p>
+        </div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% else %}
+  <div class="text-center text-slate-400 py-10">
+    <svg class="w-10 h-10 mx-auto mb-2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <p class="text-sm">No activity yet — this list fills up as things get sent, approved, or rejected.</p>
+  </div>
+  {% endif %}
+</div>
+
+<div class="flex flex-wrap gap-3">
+  <a href="/approvals" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-900 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 shadow-sm transition-colors">Open Approval Center</a>
+  <a href="/health" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50">System Health</a>
+  <a href="/settings" class="px-4 py-2.5 rounded-lg text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50">Setup Wizard</a>
+</div>
+{% endblock %}

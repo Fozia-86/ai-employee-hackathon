@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Approval Center — {{ brand_name }}{% endblock %}
+{% block content %}
+
+{% set type_style = {
+  'email_draft': {'icon': '📧', 'label': 'Email'},
+  'whatsapp_draft': {'icon': '💬', 'label': 'WhatsApp'},
+  'social_draft': {'icon': '📢', 'label': 'Social Post'},
+  'payment_request': {'icon': '💳', 'label': 'Payment'},
+} %}
+{% set platform_style = {
+  'facebook': {'icon': '📘', 'label': 'Facebook', 'ring': 'ring-blue-200', 'bg': 'bg-blue-50', 'text': 'text-blue-700'},
+  'twitter':  {'icon': '🐦', 'label': 'Twitter / X', 'ring': 'ring-sky-200', 'bg': 'bg-sky-50', 'text': 'text-sky-700'},
+  'instagram':{'icon': '📸', 'label': 'Instagram', 'ring': 'ring-pink-200', 'bg': 'bg-pink-50', 'text': 'text-pink-700'},
+  'linkedin': {'icon': '💼', 'label': 'LinkedIn', 'ring': 'ring-indigo-200', 'bg': 'bg-indigo-50', 'text': 'text-indigo-700'},
+} %}
+
+<div class="flex items-center justify-between mb-1">
+  <h1 class="text-2xl font-bold">HITL Approval Center</h1>
+  <span class="text-xs text-slate-400">Zone: <span class="font-semibold {% if local_zone %}text-emerald-600{% else %}text-amber-600{% endif %}">{{ zone }}</span></span>
+</div>
+<p class="text-slate-500 mb-4">Review, approve/reject, or publish live — everything waiting for a human decision.</p>
+
+{% if items|length > 0 %}
+<div class="flex flex-wrap gap-2 mb-6">
+  <div class="px-3 py-1.5 rounded-full bg-slate-900 text-white text-xs font-semibold">{{ items|length }} total pending</div>
+  {% for t, meta in type_style.items() %}
+    {% set n = items | selectattr('type', 'equalto', t) | list | length %}
+    {% if n > 0 %}
+    <div class="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-xs font-medium text-slate-600 flex items-center gap-1.5">
+      <span>{{ meta.icon }}</span><span>{{ meta.label }}</span>
+      <span class="px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-semibold">{{ n }}</span>
+    </div>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if flash %}
+{% set flash_style = {
+  'success': 'border-emerald-300 bg-emerald-50 text-emerald-800',
+  'error': 'border-rose-300 bg-rose-50 text-rose-800',
+  'info': 'border-slate-300 bg-slate-50 text-slate-700',
+}.get(flash_kind, 'border-slate-300 bg-slate-50 text-slate-700') %}
+<div class="mb-6 rounded-lg border {{ flash_style }} px-4 py-3 text-sm">{{ flash }}</div>
+{% endif %}
+
+{% if not local_zone %}
+<div class="mb-6 rounded-lg border border-amber-300 bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+  <strong>Read-only.</strong> EXECUTION_ZONE is <code>{{ zone }}</code>, not <code>local</code>.
+  Per this vault's Work-Zone rules, real approvals must happen on the Local zone machine.
+  You can review drafts here, but Approve/Reject actions are disabled on this instance.
+</div>
+{% endif %}
+
+{% if items|length == 0 %}
+<div class="text-center text-slate-400 py-20 border-2 border-dashed border-slate-200 rounded-2xl bg-white/50">
+  <div class="text-4xl mb-2">✅</div>
+  <div class="font-medium text-slate-500">Nothing pending — you're all caught up.</div>
+</div>
+{% endif %}
+
+<div class="grid gap-4 sm:grid-cols-2">
+  {% for item in items %}
+  {% set tmeta = type_style.get(item.type, {'icon': '📄', 'label': item.type}) %}
+  {% set platform = item.fields.get('platform', '') %}
+  {% set pmeta = platform_style.get(platform) %}
+  <div class="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-slate-100 p-4 flex flex-col gap-3">
+    <div class="flex items-center justify-between">
+      {% if pmeta %}
+      <span class="text-xs font-semibold px-2.5 py-1 rounded-full ring-1 {{ pmeta.ring }} {{ pmeta.bg }} {{ pmeta.text }} flex items-center gap-1">
+        <span>{{ pmeta.icon }}</span><span>{{ pmeta.label }}</span>
+      </span>
+      {% else %}
+      <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 flex items-center gap-1">
+        <span>{{ tmeta.icon }}</span><span>{{ tmeta.label }}</span>
+      </span>
+      {% endif %}
+      <span class="text-[11px] text-slate-400 bg-slate-50 px-2 py-0.5 rounded-full">{{ item.domain }}</span>
+    </div>
+    <div class="text-xs font-mono text-slate-400 break-all -mt-1">{{ item.name }}</div>
+    <p class="text-sm text-slate-700 leading-snug">{{ item.summary }}</p>
+
+    {% if item.fields %}
+    <details class="text-xs text-slate-500">
+      <summary class="cursor-pointer select-none">Frontmatter</summary>
+      <dl class="mt-2 space-y-1">
+        {% for k, v in item.fields.items() %}
+        <div class="flex gap-2"><dt class="font-mono text-slate-400">{{ k }}:</dt><dd class="break-all">{{ v }}</dd></div>
+        {% endfor %}
+      </dl>
+    </details>
+    {% endif %}
+
+    <div class="flex gap-2 mt-1 flex-wrap">
+      <form method="post" action="/approvals/{{ item.name }}/approve" onsubmit="return confirm('Approve {{ item.name }}?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" {% if not local_zone %}disabled{% endif %}
+          class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          Approve
+        </button>
+      </form>
+      <form method="post" action="/approvals/{{ item.name }}/reject" class="flex gap-2 items-center flex-1"
+        onsubmit="return this.reason.value.trim() !== '' || confirm('Reject {{ item.name }} with no reason given?');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="text" name="reason" placeholder="Rejection reason"
+          class="flex-1 min-w-0 text-sm border border-slate-300 rounded-lg px-2 py-1.5" {% if not local_zone %}disabled{% endif %}>
+        <button type="submit" {% if not local_zone %}disabled{% endif %}
+          class="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:bg-slate-300 disabled:cursor-not-allowed">
+          Reject
+        </button>
+      </form>
+    </div>
+    {% if item.type in confirm_words %}
+    <div class="mt-1">
+      {% if local_zone %}
+      <a href="/approvals/{{ item.name }}/confirm-live"
+        class="inline-block px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-slate-900 hover:bg-black">
+        {{ action_labels.get(item.type, 'Approve & Send') }} &rarr;
+      </a>
+      {% else %}
+      <span class="inline-block px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 bg-slate-100 cursor-not-allowed">
+        {{ action_labels.get(item.type, 'Approve & Send') }} (Local zone only)
+      </span>
+      {% endif %}
+    </div>
+    {% elif item.type == 'whatsapp_draft' %}
+    <p class="text-xs text-slate-400 mt-1">No auto-send for WhatsApp yet — approve, then send this reply manually.</p>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

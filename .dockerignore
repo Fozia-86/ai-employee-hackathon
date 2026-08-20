@@ -1,0 +1,20 @@
+venv/
+.git/
+.pytest_cache/
+__pycache__/
+**/__pycache__/
+*.pyc
+.obsidian/
+.whatsapp_session/
+.stfolder/
+.stignore
+Updates/Merged/
+
+# Secrets -- mounted at runtime via docker-compose volumes, must never be
+# baked into the image layer (COPY . /app in Dockerfile would otherwise
+# include these).
+.env
+.env.*
+.vault_key
+credentials.json
+token.json

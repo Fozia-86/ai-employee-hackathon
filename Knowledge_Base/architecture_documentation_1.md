@@ -50,7 +50,7 @@ A. Core Vault & Security (vault_server.py)
 
 monitor_triggers: Polling directory /Needs_Action/ to pull trigger requests.
 search_kb: Running RAG boundary checks inside knowledge_base.md.
-write_approval_file: Escalating deal details above the 15% threshold to /Pending_Approval/.
+write_approval_file: Escalating deal details above the 20% threshold to /Pending_Approval/.
 encrypt_sensitive_data: Cryptographically encrypting client profile parameters using AES-256-GCM.
 write_audit_log: Writing immutable JSON structured logs to /Audit_Logs/.
 generate_weekly_audit: Gathering metrics and generating formal Weekly Business CEO reports.
@@ -58,7 +58,7 @@ generate_weekly_audit: Gathering metrics and generating formal Weekly Business C
 
 B. Enterprise Resource Planning (odoo_server.py)
 
-create_odoo_invoice: Generating draft customer invoice records inside live Odoo cloud (account.move) via standard XML-RPC.
+create_odoo_invoice: Generating draft customer invoice records inside live Odoo cloud (account.move) via the JSON-2 API (migrated from XML-RPC 2026-07-12).
 C. Public Communications (social_server.py)
 post_to_twitter: Publishing promotional messages on Twitter (X).
 post_to_meta: Publishing updates to Facebook / Instagram via standard Graph API endpoints.

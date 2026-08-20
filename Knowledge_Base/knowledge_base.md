@@ -7,3 +7,8 @@
 ## System Workflow Configuration
 - All successful negotiations require a draft invoice log in Odoo.
 - Transaction data must be encrypted before local storage.
+
+## Operating Parameters
+- **Escalation Domains**: Sales, Support
+- **Operating Tone**: Professional and warm
+- **Business Operating Hours**: 9:00 AM - 6:00 PM, Monday-Friday

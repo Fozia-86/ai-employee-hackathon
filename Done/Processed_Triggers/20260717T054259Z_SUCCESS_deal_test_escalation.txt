@@ -1,4 +1,0 @@
-Customer Name: Zainab Traders
-Customer Email: zainab@zainabtraders.com
-Requested Discount: 30%
-Deal Value: $5000

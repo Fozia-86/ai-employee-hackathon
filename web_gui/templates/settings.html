@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Setup Wizard — {{ brand_name }}{% endblock %}
+{% block content %}
+
+<h1 class="text-2xl font-bold mb-1">Setup Wizard</h1>
+<p class="text-slate-500 mb-4">View and update <code>.env</code> without opening a text file. Values are masked — leave a field blank to keep the current value unchanged.</p>
+
+{% if saved %}
+<div class="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 text-emerald-800 px-4 py-3 text-sm">
+  Saved: {{ saved }}
+</div>
+{% endif %}
+{% if error %}
+<div class="mb-6 rounded-lg border border-rose-300 bg-rose-50 text-rose-800 px-4 py-3 text-sm">
+  {{ error }}
+</div>
+{% endif %}
+
+<form method="post" action="/settings" class="bg-white rounded-2xl shadow divide-y divide-slate-100">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+  {% for row in rows %}
+  <div class="p-4 flex items-center gap-4">
+    <label class="w-56 shrink-0 font-mono text-sm text-slate-600" for="{{ row.key }}">{{ row.key }}</label>
+    <input
+      type="text"
+      id="{{ row.key }}"
+      name="{{ row.key }}"
+      placeholder="{{ row.masked_value if row.is_set else '(not set)' }}"
+      autocomplete="off"
+      class="flex-1 text-sm border border-slate-300 rounded-lg px-3 py-2 font-mono">
+  </div>
+  {% endfor %}
+  <div class="p-4">
+    <button type="submit" class="px-4 py-2 rounded-lg text-sm font-medium text-white bg-slate-900 hover:bg-slate-700">
+      Save Changes
+    </button>
+  </div>
+</form>
+
+<p class="text-xs text-slate-400 mt-4">
+  Only fields you actually type into are updated — everything else is left exactly as it is on disk.
+</p>
+{% endblock %}

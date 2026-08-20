@@ -45,7 +45,22 @@ def _odoo_call(base_url: str, api_key: str, db: str, model: str, method: str, **
 
 @mcp.tool()
 def create_odoo_invoice(customer_name: str, discount_rate: float, deal_value: float) -> str:
-    """Connects to live Odoo Cloud database via the JSON-2 API and generates a draft Invoice."""
+    """Connects to live Odoo Cloud database via the JSON-2 API and generates a draft Invoice.
+
+    Gated by EXECUTION_ZONE: cloud (default) never makes a live call, even with
+    valid credentials -- only EXECUTION_ZONE=local may create a real invoice.
+    A real customer/invoice record in the live accounting system is a
+    financial transaction per the Company Handbook's HITL rule, regardless of
+    the invoice starting in Odoo's 'draft' state, so the autonomous Cloud
+    agent must not be able to create one unsupervised. Same zone boundary as
+    cancel_odoo_invoice/record_payment.
+    """
+    if is_cloud_execution():
+        logging.info(f"EXECUTION_ZONE=cloud active — invoice creation for [{customer_name}] skipped, no live call made.")
+        mock_inv = random.randint(10000, 99999)
+        return (f"EXECUTION_ZONE=cloud Sandbox: Created Mock Draft Invoice [INV-2026-00{mock_inv}] "
+                f"for [{customer_name}] (requires EXECUTION_ZONE=local for a real Odoo record).")
+
     ODOO_URL = os.environ.get("ODOO_URL", "")
     ODOO_DB = os.environ.get("ODOO_DB", "")
     ODOO_API_KEY = os.environ.get("ODOO_API_KEY", "")
@@ -102,8 +117,9 @@ def cancel_odoo_invoice(invoice_id: int) -> str:
     Invokes the standard `button_cancel` method to move the invoice into the
     `cancel` state. This performs NO hard deletion — per the KB Odoo guardrail,
     invoices may only be Drafted or Cancelled, never deleted. Intended for use
-    behind the Local Agent's approval workflow (Cloud Agent has draft-create
-    only; no cancel/post authority).
+    behind the Local Agent's approval workflow (as of the production-readiness
+    fix, create_odoo_invoice is zone-gated the same way — the Cloud agent has
+    no live Odoo mutation authority at all, draft-create included).
 
     Gated by EXECUTION_ZONE: cloud (default) never makes a live cancel call,
     even with valid credentials — only EXECUTION_ZONE=local may cancel/post.

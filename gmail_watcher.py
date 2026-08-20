@@ -43,9 +43,20 @@ def get_gmail_service():
             logging.info("Cached token.json is missing a newly required scope -- forcing re-consent.")
 
     if not creds or not creds.valid:
+        refreshed = False
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
+            try:
+                creds.refresh(Request())
+                refreshed = True
+            except Exception as e:
+                # A revoked/expired-beyond-refresh token (e.g. "invalid_grant:
+                # Token has been expired or revoked") used to propagate straight
+                # out of this function and crash the caller instead of falling
+                # back to a fresh consent flow -- found while re-authenticating
+                # after a real revoked-token incident. Fall through to the full
+                # OAuth flow below instead.
+                logging.info(f"Token refresh failed ({e}) -- falling back to full re-consent.")
+        if not refreshed:
             flow = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS_FILE), SCOPES)
             # Web-type OAuth client: this exact redirect URI must be registered
             # in Google Cloud Console under the client's Authorized redirect URIs.
